@@ -1,0 +1,386 @@
+import { NextRequest, NextResponse } from 'next/server'
+
+// Force dynamic rendering for API routes
+export const dynamic = 'force-dynamic'
+
+import { prisma } from '@/lib/prisma'
+import { z } from 'zod'
+
+const RealizarSorteoSchema = z.object({
+  rifaId: z.string(),
+  adminId: z.string(), // En producción vendría del JWT/session
+  metodoSorteo: z.enum(['ALEATORIO', 'MANUAL']),
+  semilla: z.string().optional(), // Para reproducibilidad
+  numerosGanadores: z.array(z.number()).optional() // Para sorteo manual
+})
+
+// Función para generar números aleatorios con semilla
+function seededRandom(seed: string) {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    const char = seed.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  
+  return function() {
+    hash = hash * 1103515245 + 12345;
+    return (hash / 2147483647) % 1;
+  }
+}
+
+export async function POST(request: NextRequest) {
+  const transaction = await prisma.$transaction(async (tx: any) => {
+    try {
+      const body = await request.json()
+      const { rifaId, adminId, metodoSorteo, semilla, numerosGanadores } = RealizarSorteoSchema.parse(body)
+      
+      // Verificar autorización de admin
+      const admin = await tx.usuario.findUnique({
+        where: { id: adminId },
+        select: { id: true, nombre: true, rol: true }
+      })
+      
+      if (!admin || admin.rol !== 'ADMIN') {
+        throw new Error('No autorizado para realizar sorteos')
+      }
+      
+      // Verificar que la rifa existe y está lista para sorteo
+      const rifa = await tx.rifa.findUnique({
+        where: { id: rifaId },
+        include: {
+          premios: {
+            orderBy: { orden: 'asc' }
+          },
+          tickets: {
+            where: { estado: 'PAGADO' },
+            include: {
+              participante: true
+            }
+          }
+        }
+      })
+      
+      if (!rifa) {
+        throw new Error('Rifa no encontrada')
+      }
+      
+      if (rifa.estado !== 'ACTIVA') {
+        throw new Error('La rifa debe estar activa para realizar el sorteo')
+      }
+      
+      if (new Date() < rifa.fechaSorteo) {
+        throw new Error('Aún no es la fecha del sorteo')
+      }
+      
+      if (rifa.tickets.length === 0) {
+        throw new Error('No hay tickets vendidos para esta rifa')
+      }
+      
+      // Verificar si ya existe un sorteo
+      const sorteoExistente = await tx.sorteo.findUnique({
+        where: { rifaId }
+      })
+      
+      if (sorteoExistente) {
+        throw new Error('Ya se realizó el sorteo para esta rifa')
+      }
+      
+      // Preparar tickets participantes
+      const ticketsParticipantes = rifa.tickets.map((ticket: any) => ({
+        numero: ticket.numero,
+        participanteId: ticket.participanteId,
+        participanteName: ticket.participante.nombre,
+        participanteCelular: ticket.participante.celular
+      }))
+      
+      let ganadores: Array<{
+        premioId: string;
+        ticketGanador: number;
+        participanteId: string;
+        participanteName: string;
+        participanteCelular: string;
+      }> = []
+      
+      if (metodoSorteo === 'ALEATORIO') {
+        // Sorteo aleatorio
+        const semillaFinal = semilla || `${rifaId}-${Date.now()}-${Math.random()}`
+        const random = seededRandom(semillaFinal)
+        
+        // Copiar array para manipular sin afectar original
+        let ticketsDisponibles = [...ticketsParticipantes]
+        
+        for (const premio of rifa.premios) {
+          if (ticketsDisponibles.length === 0) break
+          
+          const indiceGanador = Math.floor(random() * ticketsDisponibles.length)
+          const ticketGanador = ticketsDisponibles[indiceGanador]
+          
+          ganadores.push({
+            premioId: premio.id,
+            ticketGanador: ticketGanador.numero,
+            participanteId: ticketGanador.participanteId,
+            participanteName: ticketGanador.participanteName,
+            participanteCelular: ticketGanador.participanteCelular
+          })
+          
+          // Remover ticket ganador para evitar duplicados
+          ticketsDisponibles.splice(indiceGanador, 1)
+        }
+        
+      } else if (metodoSorteo === 'MANUAL') {
+        // Sorteo manual
+        if (!numerosGanadores || numerosGanadores.length !== rifa.premios.length) {
+          throw new Error(`Se requieren exactamente ${rifa.premios.length} números ganadores`)
+        }
+        
+        // Verificar que todos los números existen y están pagados
+        for (const numero of numerosGanadores) {
+          const ticket = ticketsParticipantes.find((t: any) => t.numero === numero)
+          if (!ticket) {
+            throw new Error(`El número ${numero} no existe o no está pagado`)
+          }
+        }
+        
+        // Verificar que no hay duplicados
+        const numerosUnicos = new Set(numerosGanadores)
+        if (numerosUnicos.size !== numerosGanadores.length) {
+          throw new Error('No puede haber números ganadores duplicados')
+        }
+        
+        // Asignar ganadores según orden de premios
+        for (let i = 0; i < rifa.premios.length; i++) {
+          const premio = rifa.premios[i]
+          const numeroGanador = numerosGanadores[i]
+          const ticket = ticketsParticipantes.find((t: any) => t.numero === numeroGanador)!
+          
+          ganadores.push({
+            premioId: premio.id,
+            ticketGanador: ticket.numero,
+            participanteId: ticket.participanteId,
+            participanteName: ticket.participanteName,
+            participanteCelular: ticket.participanteCelular
+          })
+        }
+      }
+      
+      // Crear registro del sorteo
+      const sorteo = await tx.sorteo.create({
+        data: {
+          rifaId,
+          fechaSorteo: new Date(),
+          metodo: metodoSorteo,
+          semilla: metodoSorteo === 'ALEATORIO' ? semilla || `auto-${Date.now()}` : null,
+          ticketsParticipantes: ticketsParticipantes.length,
+          realizadoPor: adminId,
+          estado: 'COMPLETADO',
+          detallesSorteo: {
+            ticketsParticipantes: ticketsParticipantes.map((t: any) => t.numero),
+            metodo: metodoSorteo,
+            timestamp: new Date().toISOString(),
+            admin: admin.nombre
+          }
+        }
+      })
+      
+      // Crear registros de ganadores
+      const ganadoresCreados = await Promise.all(
+        ganadores.map((ganador, index) =>
+          tx.ganador.create({
+            data: {
+              sorteoId: sorteo.id,
+              premioId: ganador.premioId,
+              participanteId: ganador.participanteId,
+              numeroTicket: ganador.ticketGanador,
+              posicion: index + 1,
+              notificado: false
+            },
+            include: {
+              premio: true,
+              participante: {
+                select: {
+                  nombre: true,
+                  celular: true,
+                  email: true
+                }
+              }
+            }
+          })
+        )
+      )
+      
+      // Actualizar estado de la rifa
+      await tx.rifa.update({
+        where: { id: rifaId },
+        data: { estado: 'SORTEADA' }
+      })
+      
+      // Crear notificaciones para ganadores
+      for (const ganadorCreado of ganadoresCreados) {
+        await tx.notificacion.create({
+          data: {
+            tipo: 'GANADOR',
+            titulo: `¡Felicitaciones! Has ganado: ${ganadorCreado.premio.nombre}`,
+            mensaje: `Tu ticket #${ganadorCreado.numeroTicket} resultó ganador del premio "${ganadorCreado.premio.nombre}" en la rifa "${rifa.nombre}". ¡Contacta con nosotros para reclamar tu premio!`,
+            datos: {
+              rifaId: rifa.id,
+              rifaNombre: rifa.nombre,
+              premioId: ganadorCreado.premio.id,
+              premioNombre: ganadorCreado.premio.nombre,
+              ticketNumero: ganadorCreado.numeroTicket,
+              posicion: ganadorCreado.posicion
+            },
+            participanteId: ganadorCreado.participanteId
+          }
+        })
+      }
+      
+      // Notificación general del sorteo realizado
+      await tx.notificacion.create({
+        data: {
+          tipo: 'SORTEO_REALIZADO',
+          titulo: `Sorteo realizado: ${rifa.nombre}`,
+          mensaje: `Se ha completado el sorteo de "${rifa.nombre}" con ${ganadoresCreados.length} ganadores.`,
+          datos: {
+            rifaId: rifa.id,
+            rifaNombre: rifa.nombre,
+            totalGanadores: ganadoresCreados.length,
+            ticketsParticipantes: ticketsParticipantes.length,
+            fechaSorteo: sorteo.fechaSorteo
+          },
+          paraAdministradores: true
+        }
+      })
+      
+      // Registro de auditoría
+      await tx.auditLog.create({
+        data: {
+          accion: 'REALIZAR_SORTEO',
+          entidad: 'SORTEO',
+          entidadId: sorteo.id,
+          detalles: {
+            rifaId,
+            rifaNombre: rifa.nombre,
+            metodo: metodoSorteo,
+            ticketsParticipantes: ticketsParticipantes.length,
+            ganadores: ganadores.map(g => ({
+              ticket: g.ticketGanador,
+              participante: g.participanteName
+            }))
+          },
+          usuarioId: adminId,
+          ip: request.headers.get('x-forwarded-for') || 'admin-panel'
+        }
+      })
+      
+      return {
+        success: true,
+        data: {
+          sorteoId: sorteo.id,
+          rifaNombre: rifa.nombre,
+          fechaSorteo: sorteo.fechaSorteo,
+          metodo: metodoSorteo,
+          ticketsParticipantes: ticketsParticipantes.length,
+          ganadores: ganadoresCreados.map(g => ({
+            posicion: g.posicion,
+            ticket: g.numeroTicket,
+            premio: g.premio.nombre,
+            participante: {
+              nombre: g.participante.nombre,
+              celular: g.participante.celular.replace(/(\d{3})(\d{3})(\d{4})/, '$1-***-$3') // Enmascarar
+            }
+          }))
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error al realizar sorteo:', error)
+      throw error
+    }
+  }, {
+    timeout: 30000 // 30 segundos timeout para sorteos grandes
+  })
+  
+  return NextResponse.json(transaction)
+}
+
+// GET: Listar sorteos realizados
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const rifaId = searchParams.get('rifaId')
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50)
+    
+    // TODO: Verificar autenticación de administrador
+    
+    const skip = (page - 1) * limit
+    const where = rifaId ? { rifaId } : {}
+    
+    const [sorteos, total] = await Promise.all([
+      prisma.sorteo.findMany({
+        where,
+        include: {
+          rifa: {
+            select: {
+              nombre: true,
+              fechaSorteo: true,
+              totalBoletos: true,
+              premios: {
+                where: {
+                  ticketGanadorId: { not: null }
+                },
+                include: {
+                  ticketGanador: {
+                    include: {
+                      participante: {
+                        select: {
+                          nombre: true,
+                          celular: true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        orderBy: { fechaHora: 'desc' },
+        skip,
+        take: limit
+      }),
+      
+      prisma.sorteo.count({ where })
+    ])
+    
+    const sorteosConDetalles = sorteos.map((sorteo: any) => ({
+      ...sorteo,
+      ganadores: sorteo.ganadores.map((g: any) => ({
+        ...g,
+        participante: {
+          nombre: g.participante.nombre,
+          celular: '***-' + g.participante.celular.slice(-4) // Enmascarar
+        }
+      }))
+    }))
+    
+    return NextResponse.json({
+      success: true,
+      data: sorteosConDetalles,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    })
+    
+  } catch (error) {
+    console.error('Error al listar sorteos:', error)
+    return NextResponse.json(
+      { success: false, error: 'Error al cargar sorteos' },
+      { status: 500 }
+    )
+  }
+}
