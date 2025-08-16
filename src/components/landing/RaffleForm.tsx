@@ -63,16 +63,18 @@ export function RaffleForm() {
             // Cargar disponibilidad de tickets para la primera rifa
             const disponibilidadRes = await fetch(`/api/tickets/disponibilidad?rifaId=${primeraRifa.id}`)
             if (disponibilidadRes.ok) {
-              const { data: disponibilidad } = await disponibilidadRes.json()
-              setRifa(disponibilidad.rifa)
-              
-              // Convertir tickets a formato del componente
-              const ticketsFormatted = disponibilidad.tickets.map((ticket: any) => ({
-                numero: ticket.numero,
-                estado: ticket.estado as EstadoTicket,
-                selected: false
-              }))
-              setTickets(ticketsFormatted)
+              const { success, data: disponibilidad } = await disponibilidadRes.json()
+              if (success) {
+                setRifa(disponibilidad.rifa)
+
+                // Convertir tickets a formato del componente
+                const ticketsFormatted = disponibilidad.tickets.map((ticket: any) => ({
+                  numero: ticket.numero,
+                  estado: ticket.estado as EstadoTicket,
+                  selected: false
+                }))
+                setTickets(ticketsFormatted)
+              }
             }
           }
         }
