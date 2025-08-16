@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
     if (!result.success) {
       return NextResponse.json(
-        { error: 'ID de rifa inválido', issues: result.error.issues },
+        { success: false, error: 'ID de rifa inválido', details: result.error.issues },
         { status: 400 }
       )
     }
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 
     if (!rifa) {
       return NextResponse.json(
-        { error: 'Rifa no encontrada' },
+        { success: false, error: 'Rifa no encontrada' },
         { status: 404 }
       )
     }
@@ -101,21 +101,24 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      rifa: {
-        id: rifa.id,
-        nombre: rifa.nombre,
-        totalBoletos: rifa.totalBoletos,
-        precioPorBoleto: rifa.precioPorBoleto,
-        limitePorPersona: rifa.limitePorPersona
-      },
-      tickets: disponibilidad,
-      estadisticas
+      success: true,
+      data: {
+        rifa: {
+          id: rifa.id,
+          nombre: rifa.nombre,
+          totalBoletos: rifa.totalBoletos,
+          precioPorBoleto: rifa.precioPorBoleto,
+          limitePorPersona: rifa.limitePorPersona
+        },
+        tickets: disponibilidad,
+        estadisticas
+      }
     })
 
   } catch (error) {
     console.error('Error al consultar disponibilidad:', error)
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { success: false, error: 'Error interno del servidor' },
       { status: 500 }
     )
   }
