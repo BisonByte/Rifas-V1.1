@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuthUser, logAuthEvent } from '@/lib/auth'
+import { getAuthUser, logAuthEvent, deleteRefreshToken } from '@/lib/auth'
 import { headers } from 'next/headers'
 
 // Force dynamic rendering for API routes  
@@ -38,6 +38,11 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Logout exitoso'
     })
+
+    const refreshToken = request.cookies.get('refresh-token')?.value
+    if (refreshToken) {
+      await deleteRefreshToken(refreshToken)
+    }
 
     // Eliminar cookies de autenticación
     response.cookies.set('auth-token', '', {

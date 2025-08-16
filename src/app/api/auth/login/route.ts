@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { verifyCredentials, generateJWT, logAuthEvent } from '@/lib/auth'
+import { verifyCredentials, generateJWT, logAuthEvent, saveRefreshToken } from '@/lib/auth'
 import { headers } from 'next/headers'
 
 // Force dynamic rendering for API routes
@@ -41,6 +41,8 @@ export async function POST(request: NextRequest) {
       rememberMe ? '30d' : '7d',
       'refresh'
     )
+
+    await saveRefreshToken(refreshToken, user.id)
 
     // Obtener información del request para auditoría
     const headersList = headers()

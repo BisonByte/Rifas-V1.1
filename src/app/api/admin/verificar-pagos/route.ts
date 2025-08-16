@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { MOCK_MODE, MOCK_PAGOS_PENDIENTES } from '@/lib/mock-data'
+import { requireAuth, isAdmin } from '@/lib/auth'
 
 // Force dynamic rendering for API routes
 export const dynamic = 'force-dynamic'
@@ -9,12 +10,19 @@ export const dynamic = 'force-dynamic'
 const VerificarPagoSchema = z.object({
   compraId: z.string(),
   accion: z.enum(['APROBAR', 'RECHAZAR']),
-  comentarios: z.string().optional(),
-  adminId: z.string() // En producción vendría del JWT/session
+  comentarios: z.string().optional()
 })
 
 export async function GET(request: NextRequest) {
   try {
+    const currentUser = await requireAuth(request)
+    if (!currentUser || !isAdmin(currentUser)) {
+      return NextResponse.json(
+        { success: false, error: 'Acceso denegado' },
+        { status: 403 }
+      )
+    }
+
     // Si estamos en modo demo/mock, devolver datos ficticios
     if (MOCK_MODE) {
       const searchParams = request.nextUrl.searchParams
@@ -63,11 +71,19 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const currentUser = await requireAuth(request)
+  if (!currentUser || !isAdmin(currentUser)) {
+    return NextResponse.json(
+      { success: false, error: 'Acceso denegado' },
+      { status: 403 }
+    )
+  }
+
   // Si estamos en modo demo/mock, simular respuesta exitosa
   if (MOCK_MODE) {
     const body = await request.json()
     console.log('DEMO: Acción de pago simulada:', body)
-    
+
     return NextResponse.json({
       success: true,
       message: `Pago ${body.accion === 'APROBAR' ? 'aprobado' : 'rechazado'} exitosamente (MODO DEMO)`
@@ -77,17 +93,8 @@ export async function POST(request: NextRequest) {
   const transaction = await prisma.$transaction(async (tx: any) => {
     try {
       const body = await request.json()
-      const { compraId, accion, comentarios, adminId } = VerificarPagoSchema.parse(body)
-      
-      // TODO: Verificar autenticación de administrador
-      const admin = await tx.usuario.findUnique({
-        where: { id: adminId },
-        select: { id: true, nombre: true, rol: true }
-      })
-      
-      if (!admin || admin.rol !== 'ADMIN') {
-        throw new Error('No autorizado')
-      }
+      const { compraId, accion, comentarios } = VerificarPagoSchema.parse(body)
+      const adminId = currentUser.id
       
       // Buscar la compra
       const compra = await tx.compra.findUnique({

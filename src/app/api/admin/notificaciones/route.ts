@@ -6,10 +6,10 @@ export const dynamic = 'force-dynamic'
 import { prisma } from '@/lib/prisma'
 import { emitNotification } from '@/lib/notificationEmitter'
 import { z } from 'zod'
+import { requireAuth, isAdmin } from '@/lib/auth'
 
 const MarcarLeidaSchema = z.object({
-  notificacionId: z.string(),
-  adminId: z.string() // En producción vendría del JWT/session
+  notificacionId: z.string()
 })
 
 const CrearNotificacionSchema = z.object({
@@ -18,21 +18,26 @@ const CrearNotificacionSchema = z.object({
   mensaje: z.string().min(1),
   datos: z.record(z.any()).optional(),
   participanteId: z.string().optional(),
-  paraAdministradores: z.boolean().default(false),
-  adminId: z.string() // Quien la crea
+  paraAdministradores: z.boolean().default(false)
 })
 
 // GET: Listar notificaciones para administradores
 export async function GET(request: NextRequest) {
   try {
+    const currentUser = await requireAuth(request)
+    if (!currentUser || !isAdmin(currentUser)) {
+      return NextResponse.json(
+        { success: false, error: 'Acceso denegado' },
+        { status: 403 }
+      )
+    }
+
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100)
     const tipo = searchParams.get('tipo')
     const leidas = searchParams.get('leidas') === 'true'
-    
-    // TODO: Verificar autenticación de administrador
-    
+
     const skip = (page - 1) * limit
     
     const where: any = {
@@ -120,13 +125,20 @@ export async function GET(request: NextRequest) {
 // POST: Crear notificación o marcar como leída
 export async function POST(request: NextRequest) {
   try {
+    const currentUser = await requireAuth(request)
+    if (!currentUser || !isAdmin(currentUser)) {
+      return NextResponse.json(
+        { success: false, error: 'Acceso denegado' },
+        { status: 403 }
+      )
+    }
+
     const body = await request.json()
     const action = body.action
     
     if (action === 'marcar_leida') {
-      const { notificacionId, adminId } = MarcarLeidaSchema.parse(body)
-      
-      // TODO: Verificar que adminId es válido
+      const { notificacionId } = MarcarLeidaSchema.parse(body)
+      const adminId = currentUser.id
       
       const notificacion = await prisma.notificacion.update({
         where: { id: notificacionId },
@@ -143,10 +155,9 @@ export async function POST(request: NextRequest) {
       })
       
     } else if (action === 'crear') {
-      const { adminId, ...datosNotificacion } = CrearNotificacionSchema.parse(body)
-      
-      // TODO: Verificar que adminId es válido y tiene permisos
-      
+      const datosNotificacion = CrearNotificacionSchema.parse(body)
+      const adminId = currentUser.id
+
       const notificacion = await prisma.notificacion.create({
         data: {
           ...datosNotificacion,
@@ -199,15 +210,14 @@ export async function POST(request: NextRequest) {
 // PATCH: Marcar todas como leídas
 export async function PATCH(request: NextRequest) {
   try {
-    const body = await request.json()
-    const adminId = body.adminId // TODO: Obtener del JWT
-    
-    if (!adminId) {
+    const currentUser = await requireAuth(request)
+    if (!currentUser || !isAdmin(currentUser)) {
       return NextResponse.json(
-        { success: false, error: 'ID de administrador requerido' },
-        { status: 400 }
+        { success: false, error: 'Acceso denegado' },
+        { status: 403 }
       )
     }
+    const adminId = currentUser.id
     
     const resultado = await prisma.notificacion.updateMany({
       where: {
