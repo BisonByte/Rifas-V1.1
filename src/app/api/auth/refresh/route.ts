@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyJWT, generateJWT } from '@/lib/auth'
+import { verifyJWT, generateJWT, isRefreshTokenValid, saveRefreshToken, deleteRefreshToken } from '@/lib/auth'
 
 // Force dynamic rendering for API routes
 export const dynamic = 'force-dynamic'
@@ -26,6 +26,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const valid = await isRefreshTokenValid(refreshToken)
+    if (!valid) {
+      return NextResponse.json(
+        { success: false, error: 'Token revocado' },
+        { status: 401 }
+      )
+    }
+
     const user = {
       id: payload.sub,
       nombre: payload.nombre,
@@ -34,6 +42,10 @@ export async function POST(request: NextRequest) {
     }
 
     const newAccessToken = await generateJWT(user, '15m', 'access')
+    const newRefreshToken = await generateJWT(user, '7d', 'refresh')
+
+    await deleteRefreshToken(refreshToken)
+    await saveRefreshToken(newRefreshToken, user.id)
 
     const response = NextResponse.json({ success: true })
     response.cookies.set('auth-token', newAccessToken, {
@@ -41,6 +53,14 @@ export async function POST(request: NextRequest) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       maxAge: 15 * 60,
+      path: '/'
+    })
+
+    response.cookies.set('refresh-token', newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60,
       path: '/'
     })
 

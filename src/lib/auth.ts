@@ -2,12 +2,14 @@ import { SignJWT, jwtVerify } from 'jose'
 import { cookies } from 'next/headers'
 import { NextRequest } from 'next/server'
 import bcrypt from 'bcryptjs'
+import crypto from 'crypto'
 import { prisma } from './prisma'
 
 // Configuración JWT
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production'
-)
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET is not defined')
+}
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET)
 const JWT_ALGORITHM = 'HS256'
 
 // Tipos
@@ -26,6 +28,34 @@ export interface JWTPayload {
   tokenType: 'access' | 'refresh'
   iat: number
   exp: number
+}
+
+// Helpers para refresh tokens persistentes
+function hashToken(token: string) {
+  return crypto.createHash('sha256').update(token).digest('hex')
+}
+
+export async function saveRefreshToken(token: string, userId: string) {
+  await prisma.refreshToken.create({
+    data: {
+      tokenHash: hashToken(token),
+      userId
+    }
+  })
+}
+
+export async function deleteRefreshToken(token: string) {
+  await prisma.refreshToken.deleteMany({
+    where: { tokenHash: hashToken(token) }
+  })
+}
+
+export async function isRefreshTokenValid(token: string): Promise<boolean> {
+  const tokenHash = hashToken(token)
+  const existing = await prisma.refreshToken.findUnique({
+    where: { tokenHash }
+  })
+  return !!existing && !existing.revoked
 }
 
 /**

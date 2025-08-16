@@ -1,11 +1,20 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { MOCK_MODE } from '@/lib/mock-data'
+import { requireAuth, isAdmin } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const currentUser = await requireAuth(request)
+    if (!currentUser || !isAdmin(currentUser)) {
+      return NextResponse.json(
+        { success: false, error: 'Acceso denegado' },
+        { status: 403 }
+      )
+    }
+
     const now = new Date()
     const start = new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000)
 

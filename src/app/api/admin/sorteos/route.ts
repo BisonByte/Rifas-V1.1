@@ -5,10 +5,10 @@ export const dynamic = 'force-dynamic'
 
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { requireAuth, isAdmin } from '@/lib/auth'
 
 const RealizarSorteoSchema = z.object({
   rifaId: z.string(),
-  adminId: z.string(), // En producción vendría del JWT/session
   metodoSorteo: z.enum(['ALEATORIO', 'MANUAL']),
   semilla: z.string().optional(), // Para reproducibilidad
   numerosGanadores: z.array(z.number()).optional() // Para sorteo manual
@@ -30,20 +30,19 @@ function seededRandom(seed: string) {
 }
 
 export async function POST(request: NextRequest) {
+  const currentUser = await requireAuth(request)
+  if (!currentUser || !isAdmin(currentUser)) {
+    return NextResponse.json(
+      { success: false, error: 'Acceso denegado' },
+      { status: 403 }
+    )
+  }
+
   const transaction = await prisma.$transaction(async (tx: any) => {
     try {
       const body = await request.json()
-      const { rifaId, adminId, metodoSorteo, semilla, numerosGanadores } = RealizarSorteoSchema.parse(body)
-      
-      // Verificar autorización de admin
-      const admin = await tx.usuario.findUnique({
-        where: { id: adminId },
-        select: { id: true, nombre: true, rol: true }
-      })
-      
-      if (!admin || admin.rol !== 'ADMIN') {
-        throw new Error('No autorizado para realizar sorteos')
-      }
+      const { rifaId, metodoSorteo, semilla, numerosGanadores } = RealizarSorteoSchema.parse(body)
+      const adminId = currentUser.id
       
       // Verificar que la rifa existe y está lista para sorteo
       const rifa = await tx.rifa.findUnique({
@@ -178,7 +177,7 @@ export async function POST(request: NextRequest) {
             ticketsParticipantes: ticketsParticipantes.map((t: any) => t.numero),
             metodo: metodoSorteo,
             timestamp: new Date().toISOString(),
-            admin: admin.nombre
+            admin: currentUser.nombre
           }
         }
       })
@@ -307,12 +306,19 @@ export async function POST(request: NextRequest) {
 // GET: Listar sorteos realizados
 export async function GET(request: NextRequest) {
   try {
+    const currentUser = await requireAuth(request)
+    if (!currentUser || !isAdmin(currentUser)) {
+      return NextResponse.json(
+        { success: false, error: 'Acceso denegado' },
+        { status: 403 }
+      )
+    }
+
     const { searchParams } = new URL(request.url)
     const rifaId = searchParams.get('rifaId')
     const page = parseInt(searchParams.get('page') || '1')
     const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50)
-    
-    // TODO: Verificar autenticación de administrador
+
     
     const skip = (page - 1) * limit
     const where = rifaId ? { rifaId } : {}
