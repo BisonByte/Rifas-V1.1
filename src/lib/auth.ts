@@ -2,12 +2,14 @@ import { SignJWT, jwtVerify } from 'jose'
 import { cookies } from 'next/headers'
 import { NextRequest } from 'next/server'
 import bcrypt from 'bcryptjs'
+import crypto from 'crypto'
 import { prisma } from './prisma'
 
 // Configuración JWT
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production'
-)
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET is not defined')
+}
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET)
 const JWT_ALGORITHM = 'HS256'
 
 // Tipos
@@ -15,7 +17,7 @@ export interface AuthUser {
   id: string
   nombre: string
   email: string
-  rol: 'ADMINISTRADOR' | 'VENDEDOR' | 'AUDITOR'
+  rol: 'SUPER_ADMIN' | 'ADMIN' | 'VENDEDOR' | 'AUDITOR'
 }
 
 export interface JWTPayload {
@@ -23,25 +25,59 @@ export interface JWTPayload {
   nombre: string
   email: string
   rol: string
+  tokenType: 'access' | 'refresh'
   iat: number
   exp: number
+}
+
+// Helpers para refresh tokens persistentes
+function hashToken(token: string) {
+  return crypto.createHash('sha256').update(token).digest('hex')
+}
+
+export async function saveRefreshToken(token: string, userId: string) {
+  await prisma.refreshToken.create({
+    data: {
+      tokenHash: hashToken(token),
+      userId
+    }
+  })
+}
+
+export async function deleteRefreshToken(token: string) {
+  await prisma.refreshToken.deleteMany({
+    where: { tokenHash: hashToken(token) }
+  })
+}
+
+export async function isRefreshTokenValid(token: string): Promise<boolean> {
+  const tokenHash = hashToken(token)
+  const existing = await prisma.refreshToken.findUnique({
+    where: { tokenHash }
+  })
+  return !!existing && !existing.revoked
 }
 
 /**
  * Genera un token JWT para el usuario
  */
-export async function generateJWT(user: AuthUser): Promise<string> {
+export async function generateJWT(
+  user: AuthUser,
+  expiresIn = '15m',
+  tokenType: 'access' | 'refresh' = 'access'
+): Promise<string> {
   const payload = {
     sub: user.id,
     nombre: user.nombre,
     email: user.email,
     rol: user.rol,
+    tokenType,
   }
 
   const token = await new SignJWT(payload)
     .setProtectedHeader({ alg: JWT_ALGORITHM })
     .setIssuedAt()
-    .setExpirationTime('24h') // Token válido por 24 horas
+    .setExpirationTime(expiresIn)
     .sign(JWT_SECRET)
 
   return token
@@ -60,6 +96,7 @@ export async function verifyJWT(token: string): Promise<JWTPayload | null> {
       typeof payload.nombre === 'string' &&
       typeof payload.email === 'string' &&
       typeof payload.rol === 'string' &&
+      (payload.tokenType === 'access' || payload.tokenType === 'refresh') &&
       typeof payload.iat === 'number' &&
       typeof payload.exp === 'number'
     ) {
@@ -86,7 +123,7 @@ export async function getAuthUser(): Promise<AuthUser | null> {
     }
 
     const payload = await verifyJWT(token)
-    if (!payload) {
+    if (!payload || payload.tokenType !== 'access') {
       return null
     }
 
@@ -94,7 +131,7 @@ export async function getAuthUser(): Promise<AuthUser | null> {
       id: payload.sub,
       nombre: payload.nombre,
       email: payload.email,
-      rol: payload.rol as 'ADMINISTRADOR' | 'VENDEDOR' | 'AUDITOR'
+      rol: payload.rol as 'SUPER_ADMIN' | 'ADMIN' | 'VENDEDOR' | 'AUDITOR'
     }
   } catch (error) {
     console.error('Error obteniendo usuario autenticado:', error)
@@ -121,12 +158,12 @@ export async function verifyCredentials(email: string, password: string): Promis
         return null
       }
 
-      return {
-        id: usuario.id,
-        nombre: usuario.nombre,
-        email: usuario.email,
-        rol: usuario.rol
-      }
+        return {
+          id: usuario.id,
+          nombre: usuario.nombre,
+          email: usuario.email,
+          rol: usuario.rol
+        }
     }
 
     // Modo producción con base de datos real
@@ -155,7 +192,7 @@ export async function verifyCredentials(email: string, password: string): Promis
       id: usuario.id,
       nombre: usuario.nombre,
       email: usuario.email,
-      rol: usuario.rol as 'ADMINISTRADOR' | 'VENDEDOR' | 'AUDITOR'
+      rol: usuario.rol as 'SUPER_ADMIN' | 'ADMIN' | 'VENDEDOR' | 'AUDITOR'
     }
   } catch (error) {
     console.error('Error verificando credenciales:', error)
@@ -208,7 +245,7 @@ export async function requireAuth(request: NextRequest): Promise<AuthUser | null
     id: payload.sub,
     nombre: payload.nombre,
     email: payload.email,
-    rol: payload.rol as 'ADMINISTRADOR' | 'VENDEDOR' | 'AUDITOR'
+      rol: payload.rol as 'SUPER_ADMIN' | 'ADMIN' | 'VENDEDOR' | 'AUDITOR'
   }
 }
 
@@ -226,7 +263,14 @@ export function hasRole(user: AuthUser, requiredRole: string | string[]): boolea
  * Verifica si el usuario es administrador
  */
 export function isAdmin(user: AuthUser): boolean {
-  return user.rol === 'ADMINISTRADOR'
+  return user.rol === 'ADMIN' || user.rol === 'SUPER_ADMIN'
+}
+
+/**
+ * Verifica si el usuario es super administrador
+ */
+export function isSuperAdmin(user: AuthUser): boolean {
+  return user.rol === 'SUPER_ADMIN'
 }
 
 /**

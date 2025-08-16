@@ -69,7 +69,7 @@ export const UsuarioSchema = z.object({
   email: z.string().email('Email inválido'),
   celular: z.string().optional(),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-  rol: z.enum(['ADMINISTRADOR', 'VENDEDOR', 'AUDITOR']).default('VENDEDOR'),
+  rol: z.enum(['SUPER_ADMIN', 'ADMIN', 'VENDEDOR', 'AUDITOR']).default('VENDEDOR'),
   activo: z.boolean().default(true)
 })
 

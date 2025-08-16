@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuthUser, logAuthEvent } from '@/lib/auth'
+import { getAuthUser, logAuthEvent, deleteRefreshToken } from '@/lib/auth'
 import { headers } from 'next/headers'
 
 // Force dynamic rendering for API routes  
@@ -33,18 +33,31 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Crear response y limpiar cookie
+    // Crear response y limpiar cookies
     const response = NextResponse.json({
       success: true,
       message: 'Logout exitoso'
     })
 
-    // Eliminar cookie de autenticación
+    const refreshToken = request.cookies.get('refresh-token')?.value
+    if (refreshToken) {
+      await deleteRefreshToken(refreshToken)
+    }
+
+    // Eliminar cookies de autenticación
     response.cookies.set('auth-token', '', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 0, // Expira inmediatamente
+      maxAge: 0,
+      path: '/'
+    })
+
+    response.cookies.set('refresh-token', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 0,
       path: '/'
     })
 

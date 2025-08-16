@@ -18,6 +18,8 @@ model Usuario {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  refreshTokens RefreshToken[]
+
   @@map("usuarios")
 }
 
@@ -210,9 +212,21 @@ model Configuracion {
   descripcion String?
   tipo        String   @default("STRING") // STRING, NUMBER, BOOLEAN, JSON
   categoria   String   @default("GENERAL")
-  
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@map("configuraciones")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user Usuario @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
 }

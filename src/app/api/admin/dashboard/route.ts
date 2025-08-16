@@ -5,11 +5,18 @@ export const dynamic = 'force-dynamic'
 
 import { prisma } from '@/lib/prisma'
 import { MOCK_MODE, MOCK_STATS } from '@/lib/mock-data'
+import { requireAuth, isAdmin } from '@/lib/auth'
 
 // GET: Dashboard principal con estadísticas
 export async function GET(request: NextRequest) {
   try {
-    // TODO: Verificar autenticación de administrador
+    const currentUser = await requireAuth(request)
+    if (!currentUser || !isAdmin(currentUser)) {
+      return NextResponse.json(
+        { success: false, error: 'Acceso denegado' },
+        { status: 403 }
+      )
+    }
     
     // Si estamos en modo demo/mock, devolver datos ficticios
     if (MOCK_MODE) {
