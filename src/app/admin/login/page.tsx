@@ -133,9 +133,6 @@ function LoginContent() {
             Panel de Administración Avanzado
           </p>
         </div>
-            Sistema de Rifas - Acceso Administrativo
-          </p>
-        </div>
 
         {/* Formulario de Login */}
         <Card className="bg-slate-800/80 border-slate-700/50 backdrop-blur-xl shadow-2xl animate-slide-in">
