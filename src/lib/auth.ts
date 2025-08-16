@@ -59,11 +59,17 @@ export async function isRefreshTokenValid(token: string): Promise<boolean> {
 }
 
 /**
- * Genera un token JWT para el usuario
+ * Genera un token JWT para el usuario (versión simple para compatibilidad)
  */
+export async function generateJWT(user: AuthUser): Promise<string>
 export async function generateJWT(
   user: AuthUser,
-  expiresIn = '15m',
+  expiresIn: string,
+  tokenType: 'access' | 'refresh'
+): Promise<string>
+export async function generateJWT(
+  user: AuthUser,
+  expiresIn = '24h',
   tokenType: 'access' | 'refresh' = 'access'
 ): Promise<string> {
   const payload = {

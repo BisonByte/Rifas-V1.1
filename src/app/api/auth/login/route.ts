@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { verifyCredentials, generateJWT, logAuthEvent, saveRefreshToken } from '@/lib/auth'
+import { verifyCredentials, generateJWT, logAuthEvent } from '@/lib/auth'
 import { headers } from 'next/headers'
 
 // Force dynamic rendering for API routes
@@ -8,8 +8,7 @@ export const dynamic = 'force-dynamic'
 
 const LoginSchema = z.object({
   email: z.string().email('Email inválido'),
-  password: z.string().min(1, 'Contraseña requerida'),
-  rememberMe: z.boolean().optional()
+  password: z.string().min(1, 'Contraseña requerida')
 })
 
 /**
@@ -20,7 +19,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const validatedData = LoginSchema.parse(body)
-    const { email, password, rememberMe } = validatedData
+    const { email, password } = validatedData
 
     // Verificar credenciales
     const user = await verifyCredentials(email, password)
@@ -34,15 +33,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generar tokens
-    const accessToken = await generateJWT(user, '15m', 'access')
-    const refreshToken = await generateJWT(
-      user,
-      rememberMe ? '30d' : '7d',
-      'refresh'
-    )
-
-    await saveRefreshToken(refreshToken, user.id)
+    // Generar JWT token básico
+    const token = await generateJWT(user)
 
     // Obtener información del request para auditoría
     const headersList = headers()
@@ -73,20 +65,12 @@ export async function POST(request: NextRequest) {
       message: 'Login exitoso'
     })
 
-    // Configurar cookies HttpOnly para seguridad
-    response.cookies.set('auth-token', accessToken, {
+    // Configurar cookie HttpOnly para seguridad
+    response.cookies.set('auth-token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 15 * 60, // 15 minutos
-      path: '/'
-    })
-
-    response.cookies.set('refresh-token', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: (rememberMe ? 30 : 7) * 24 * 60 * 60,
+      maxAge: 24 * 60 * 60, // 24 horas en segundos
       path: '/'
     })
 
