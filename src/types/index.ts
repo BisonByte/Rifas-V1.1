@@ -162,7 +162,8 @@ export interface AuditLog {
 
 // Enums
 export enum RolUsuario {
-  ADMINISTRADOR = 'ADMINISTRADOR',
+  SUPER_ADMIN = 'SUPER_ADMIN',
+  ADMIN = 'ADMIN',
   VENDEDOR = 'VENDEDOR',
   AUDITOR = 'AUDITOR'
 }

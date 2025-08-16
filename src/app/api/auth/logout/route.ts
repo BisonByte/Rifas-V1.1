@@ -33,18 +33,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Crear response y limpiar cookie
+    // Crear response y limpiar cookies
     const response = NextResponse.json({
       success: true,
       message: 'Logout exitoso'
     })
 
-    // Eliminar cookie de autenticación
+    // Eliminar cookies de autenticación
     response.cookies.set('auth-token', '', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 0, // Expira inmediatamente
+      maxAge: 0,
+      path: '/'
+    })
+
+    response.cookies.set('refresh-token', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 0,
       path: '/'
     })
 
