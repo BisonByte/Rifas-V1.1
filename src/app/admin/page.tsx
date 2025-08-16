@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/badge'
+import { SalesChart } from '@/components/analytics/SalesChart'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { 
@@ -198,6 +199,10 @@ export default function AdminDashboard() {
     }
   }
 
+  const handleExport = () => {
+    window.open('/api/admin/export/ventas', '_blank')
+  }
+
   useEffect(() => {
     const initDashboard = async () => {
       const isAuthenticated = await checkAuth()
@@ -257,6 +262,7 @@ export default function AdminDashboard() {
           
           {/* Botones */}
           <div className="flex items-center gap-2">
+            <Button onClick={handleExport} variant="outline" size="sm">Exportar CSV</Button>
             <Button onClick={cargarDashboard} disabled={refreshing} variant="outline" size="sm">
               <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
               Actualizar
@@ -405,6 +411,14 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Ventas últimos 7 días</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <SalesChart />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="payments" className="space-y-4">

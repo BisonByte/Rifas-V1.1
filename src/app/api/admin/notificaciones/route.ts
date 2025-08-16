@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic'
 
 import { prisma } from '@/lib/prisma'
+import { emitNotification } from '@/lib/notificationEmitter'
 import { z } from 'zod'
 
 const MarcarLeidaSchema = z.object({
@@ -152,6 +153,7 @@ export async function POST(request: NextRequest) {
           creadaPor: adminId
         }
       })
+        emitNotification({ id: notificacion.id, tipo: notificacion.tipo, titulo: notificacion.titulo, mensaje: notificacion.mensaje })
       
       // Registro de auditoría
       await prisma.auditLog.create({
