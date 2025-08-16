@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 interface LoginForm {
   email: string
   password: string
+  rememberMe: boolean
 }
 
 interface LoginResponse {
@@ -32,7 +33,8 @@ function LoginContent() {
 
   const [formData, setFormData] = useState<LoginForm>({
     email: '',
-    password: ''
+    password: '',
+    rememberMe: false
   })
 
   const [isLoading, setIsLoading] = useState(false)
@@ -46,7 +48,7 @@ function LoginContent() {
         const response = await fetch('/api/auth/me')
         if (response.ok) {
           const data = await response.json()
-          if (data.success && data.user.rol === 'ADMINISTRADOR') {
+          if (data.success && ['ADMIN', 'SUPER_ADMIN'].includes(data.user.rol)) {
             router.push(redirectTo)
           }
         }
@@ -59,12 +61,11 @@ function LoginContent() {
   }, [router, redirectTo])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
+    const { name, value, type, checked } = e.target
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: type === 'checkbox' ? checked : value
     }))
-    // Limpiar error cuando el usuario empiece a escribir
     if (error) setError(null)
   }
 
@@ -86,7 +87,7 @@ function LoginContent() {
 
       if (data.success) {
         // Verificar que el usuario sea administrador
-        if (data.user?.rol !== 'ADMINISTRADOR') {
+        if (!['ADMIN', 'SUPER_ADMIN'].includes(data.user?.rol || '')) {
           setError('Acceso denegado. Solo administradores pueden acceder.')
           return
         }
@@ -187,6 +188,22 @@ function LoginContent() {
                     )}
                   </button>
                 </div>
+              </div>
+
+              {/* Remember Me */}
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="rememberMe"
+                  name="rememberMe"
+                  checked={formData.rememberMe}
+                  onChange={handleInputChange}
+                  disabled={isLoading}
+                  className="h-4 w-4 border-gray-300 rounded"
+                />
+                <label htmlFor="rememberMe" className="text-sm text-gray-700">
+                  Recordarme
+                </label>
               </div>
 
               {/* Botón Submit */}

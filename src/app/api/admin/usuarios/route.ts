@@ -10,7 +10,7 @@ const CreateUserSchema = z.object({
   nombre: z.string().min(2, 'Nombre debe tener al menos 2 caracteres'),
   email: z.string().email('Email inválido'),
   password: z.string().min(6, 'Contraseña debe tener al menos 6 caracteres'),
-  rol: z.enum(['ADMINISTRADOR', 'VENDEDOR', 'AUDITOR']),
+  rol: z.enum(['SUPER_ADMIN', 'ADMIN', 'VENDEDOR', 'AUDITOR']),
   celular: z.string().optional()
 })
 
@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
     // Construir filtros
     const where: any = {}
     
-    if (rol && ['ADMINISTRADOR', 'VENDEDOR', 'AUDITOR'].includes(rol)) {
+    if (rol && ['SUPER_ADMIN', 'ADMIN', 'VENDEDOR', 'AUDITOR'].includes(rol)) {
       where.rol = rol
     }
     

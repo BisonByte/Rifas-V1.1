@@ -8,7 +8,8 @@ export const dynamic = 'force-dynamic'
 
 const LoginSchema = z.object({
   email: z.string().email('Email inválido'),
-  password: z.string().min(1, 'Contraseña requerida')
+  password: z.string().min(1, 'Contraseña requerida'),
+  rememberMe: z.boolean().optional()
 })
 
 /**
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const validatedData = LoginSchema.parse(body)
-    const { email, password } = validatedData
+    const { email, password, rememberMe } = validatedData
 
     // Verificar credenciales
     const user = await verifyCredentials(email, password)
@@ -33,8 +34,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generar JWT token
-    const token = await generateJWT(user)
+    // Generar tokens
+    const accessToken = await generateJWT(user, '15m', 'access')
+    const refreshToken = await generateJWT(
+      user,
+      rememberMe ? '30d' : '7d',
+      'refresh'
+    )
 
     // Obtener información del request para auditoría
     const headersList = headers()
@@ -53,7 +59,7 @@ export async function POST(request: NextRequest) {
       userAgent
     )
 
-    // Configurar cookie con el token
+    // Configurar respuesta
     const response = NextResponse.json({
       success: true,
       user: {
@@ -65,12 +71,20 @@ export async function POST(request: NextRequest) {
       message: 'Login exitoso'
     })
 
-    // Configurar cookie HttpOnly para seguridad
-    response.cookies.set('auth-token', token, {
+    // Configurar cookies HttpOnly para seguridad
+    response.cookies.set('auth-token', accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 24 * 60 * 60, // 24 horas en segundos
+      maxAge: 15 * 60, // 15 minutos
+      path: '/'
+    })
+
+    response.cookies.set('refresh-token', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: (rememberMe ? 30 : 7) * 24 * 60 * 60,
       path: '/'
     })
 

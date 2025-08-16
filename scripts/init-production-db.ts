@@ -27,7 +27,7 @@ async function initProductionDatabase() {
         email: 'admin@sistemrifas.com',
         celular: '+34600000000',
         password: adminPassword,
-        rol: 'ADMINISTRADOR',
+          rol: 'SUPER_ADMIN',
         activo: true
       }
     });

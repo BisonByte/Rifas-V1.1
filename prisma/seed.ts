@@ -16,7 +16,7 @@ async function main() {
       email: 'admin@rifas.com',
       celular: '+1234567890',
       password: adminPassword,
-      rol: 'ADMINISTRADOR',
+        rol: 'SUPER_ADMIN',
       activo: true
     }
   })
