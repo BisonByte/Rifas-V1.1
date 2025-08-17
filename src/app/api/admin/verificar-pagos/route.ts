@@ -82,7 +82,9 @@ export async function POST(request: NextRequest) {
   // Si estamos en modo demo/mock, simular respuesta exitosa
   if (MOCK_MODE) {
     const body = await request.json()
-    console.log('DEMO: Acción de pago simulada:', body)
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug('DEMO: Acción de pago simulada:', body)
+    }
 
     return NextResponse.json({
       success: true,
