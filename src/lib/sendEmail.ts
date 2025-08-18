@@ -1,9 +1,22 @@
 import { CONFIG } from '@/lib/config'
 
-export async function sendEmail(to: string, subject: string, text: string) {
+export async function sendEmail(
+  to: string,
+  subject: string,
+  text: string,
+  type?: string
+) {
   if (!CONFIG.EMAIL.SMTP_ENABLED) {
     console.warn('SMTP no está configurado')
     return
+  }
+
+  if (type) {
+    const template = (CONFIG.EMAIL.TEMPLATES as Record<string, any>)[type]
+    if (template) {
+      subject = template.subject ?? subject
+      text = template.body ?? text
+    }
   }
 
   let nodemailer: any
