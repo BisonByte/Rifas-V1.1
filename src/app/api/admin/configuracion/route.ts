@@ -16,7 +16,15 @@ export async function GET() {
     })
 
     const config = configuraciones.reduce((acc, item) => {
-      acc[item.clave] = item.valor as any
+      try {
+        if (item.tipo === 'json') {
+          acc[item.clave] = JSON.parse(item.valor)
+        } else {
+          acc[item.clave] = item.valor
+        }
+      } catch {
+        acc[item.clave] = item.valor
+      }
       return acc
     }, {} as Record<string, any>)
 
@@ -52,13 +60,15 @@ export async function PUT(request: NextRequest) {
 
     // Actualizar configuraciones
     for (const [clave, valor] of Object.entries(configuraciones)) {
+      const valorString = typeof valor === 'string' ? valor : JSON.stringify(valor)
+      
       await prisma.configuracionSitio.upsert({
         where: { clave },
-        update: { valor },
-        create: {
-          clave,
-          valor,
-          tipo: typeof valor === 'string' ? 'text' : 'json'
+        update: { valor: valorString },
+        create: { 
+          clave, 
+          valor: valorString, 
+          tipo: typeof valor === 'string' ? 'text' : 'json' 
         }
       })
     }
