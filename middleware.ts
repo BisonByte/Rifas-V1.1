@@ -1,8 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
+import fs from 'fs'
 import { requireAuth, isAdmin } from '@/lib/auth'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  const isSetupRoute = pathname === '/setup' || pathname.startsWith('/api/setup')
+  const isStatic =
+    pathname.startsWith('/_next') ||
+    pathname === '/favicon.ico' ||
+    /\.[^/]+$/.test(pathname)
+  const firstRunActive = process.env.FIRST_RUN !== 'false' && !fs.existsSync('setup.lock')
+
+  if (firstRunActive && !isSetupRoute && !isStatic) {
+    return NextResponse.redirect(new URL('/setup', request.url))
+  }
 
   // Solo aplicar middleware a rutas administrativas
   if (!pathname.startsWith('/admin') && !pathname.startsWith('/api/admin')) {
@@ -85,7 +97,6 @@ export async function middleware(request: NextRequest) {
 // Configurar en qué rutas aplicar el middleware
 export const config = {
   matcher: [
-    '/admin/:path*',
-    '/api/admin/:path*'
+    '/:path*'
   ]
 }
