@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/badge'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
+import { get } from '@/lib/api-client'
 import { 
   Search,
   Filter,
@@ -44,11 +45,7 @@ export default function PagosPage() {
   useEffect(() => {
     const fetchPagos = async () => {
       try {
-        const res = await fetch('/api/admin/verificar-pagos', { cache: 'no-store' })
-        if (!res.ok) {
-          throw new Error('Error al cargar pagos')
-        }
-        const json = await res.json()
+        const json = await get('/api/admin/verificar-pagos', { cache: 'no-store' })
         const mapped = (json.data || []).map((p: any) => ({
           id: p.id,
           participante: {

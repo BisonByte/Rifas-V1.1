@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { get } from '@/lib/api-client'
 
 interface Point {
   fecha: string
@@ -11,11 +12,9 @@ export function SalesChart() {
   const [data, setData] = useState<Point[]>([])
 
   useEffect(() => {
-    fetch('/api/admin/analytics/ventas')
-      .then(res => res.json())
-      .then(res => {
-        if (res.success) setData(res.data)
-      })
+    get('/api/admin/analytics/ventas').then(res => {
+      if (res.success) setData(res.data)
+    })
   }, [])
 
   const max = Math.max(...data.map(d => d.monto), 0)

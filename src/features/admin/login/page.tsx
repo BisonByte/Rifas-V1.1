@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/Button'
 import { AlertCircle, Shield, Eye, EyeOff } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { get, post } from '@/lib/api-client'
 
 interface LoginForm {
   email: string
@@ -45,12 +46,9 @@ function LoginContent() {
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        const response = await fetch('/api/auth/me')
-        if (response.ok) {
-          const data = await response.json()
-          if (data.success && ['ADMIN', 'SUPER_ADMIN'].includes(data.user.rol)) {
-            router.push(redirectTo)
-          }
+        const data = await get('/api/auth/me')
+        if (data.success && ['ADMIN', 'SUPER_ADMIN'].includes(data.user.rol)) {
+          router.push(redirectTo)
         }
       } catch (error) {
         // Usuario no autenticado - continuar en login
@@ -75,15 +73,7 @@ function LoginContent() {
     setError(null)
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      })
-
-      const data: LoginResponse = await response.json()
+      const data: LoginResponse = await post('/api/auth/login', formData)
 
       if (data.success) {
         // Verificar que el usuario sea administrador

@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { get, post, put, del } from '@/lib/api-client'
 
 interface MetodoPago {
   id: string
@@ -27,8 +28,7 @@ export default function MetodosPagoPage() {
 
   const cargarMetodos = async () => {
     try {
-      const response = await fetch('/api/admin/metodos-pago')
-      const data = await response.json()
+      const data = await get('/api/admin/metodos-pago')
       setMetodos(data)
     } catch (error) {
       console.error('Error cargando métodos de pago:', error)
@@ -57,20 +57,17 @@ export default function MetodosPagoPage() {
     if (!editingMethod) return
 
     try {
-      const method = isCreating ? 'POST' : 'PUT'
       const url = '/api/admin/metodos-pago'
-      
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editingMethod)
-      })
 
-      if (response.ok) {
-        alert(isCreating ? 'Método creado exitosamente' : 'Método actualizado exitosamente')
-        setEditingMethod(null)
-        cargarMetodos()
+      if (isCreating) {
+        await post(url, editingMethod)
+      } else {
+        await put(url, editingMethod)
       }
+
+      alert(isCreating ? 'Método creado exitosamente' : 'Método actualizado exitosamente')
+      setEditingMethod(null)
+      cargarMetodos()
     } catch (error) {
       console.error('Error guardando método:', error)
       alert('Error guardando método')
@@ -79,11 +76,7 @@ export default function MetodosPagoPage() {
 
   const toggleActivo = async (id: string, activo: boolean) => {
     try {
-      await fetch('/api/admin/metodos-pago', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, activo })
-      })
+      await put('/api/admin/metodos-pago', { id, activo })
       cargarMetodos()
     } catch (error) {
       console.error('Error actualizando estado:', error)
@@ -94,9 +87,7 @@ export default function MetodosPagoPage() {
     if (!confirm('¿Estás seguro de eliminar este método de pago?')) return
 
     try {
-      await fetch(`/api/admin/metodos-pago?id=${id}`, {
-        method: 'DELETE'
-      })
+      await del(`/api/admin/metodos-pago?id=${id}`)
       alert('Método eliminado exitosamente')
       cargarMetodos()
     } catch (error) {

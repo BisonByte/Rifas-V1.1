@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { formatCurrencyFlexible } from '@/lib/utils'
+import { get, post } from '@/lib/api-client'
 
 interface Rifa {
   id: string
@@ -85,8 +86,7 @@ export function CompraRifa() {
   useEffect(() => {
     const cargarRifas = async () => {
       try {
-        const response = await fetch('/api/rifas')
-        const data = await response.json()
+        const data = await get('/api/rifas')
         if (data.success) {
           setRifas(data.data)
           if (data.data.length > 0) {
@@ -101,8 +101,7 @@ export function CompraRifa() {
 
     const cargarMetodosPago = async () => {
       try {
-        const response = await fetch('/api/metodos-pago')
-        const json = await response.json()
+        const json = await get('/api/metodos-pago')
         const data = json?.success ? json.data : json
         setMetodosPago(data)
       } catch (error) {
@@ -119,8 +118,7 @@ export function CompraRifa() {
   useEffect(() => {
     const loadSiteConfig = async () => {
       try {
-        const res = await fetch('/api/configuracion')
-        const json = await res.json()
+        const json = await get('/api/configuracion')
         const payload = json?.success ? json.data : json
         const map: Record<string, string> = {}
         if (Array.isArray(payload)) {
@@ -148,8 +146,7 @@ export function CompraRifa() {
     const loadTop = async () => {
       if (!rifaSeleccionada) return
       try {
-        const res = await fetch(`/api/rifas/${rifaSeleccionada.id}/top-compradores`)
-        const data = await res.json()
+        const data = await get(`/api/rifas/${rifaSeleccionada.id}/top-compradores`)
         if (data?.success) setTopCompradores(data.data)
       } catch {}
     }
@@ -203,8 +200,7 @@ export function CompraRifa() {
     if (rifaSeleccionada) {
       const cargarTickets = async () => {
         try {
-          const response = await fetch(`/api/rifas/${rifaSeleccionada.id}/tickets`)
-          const data = await response.json()
+          const data = await get(`/api/rifas/${rifaSeleccionada.id}/tickets`)
           if (data.success) {
             setTickets(data.tickets)
           }
@@ -334,12 +330,7 @@ export function CompraRifa() {
       const formData = new FormData()
       formData.append('file', file)
 
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      })
-
-      const result = await response.json()
+      const result = await post('/api/upload', formData)
       
       if (result.success) {
         return result.url
@@ -399,15 +390,7 @@ export function CompraRifa() {
         }
       }
 
-      const response = await fetch('/api/compras', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(compraData)
-      })
-
-      const result = await response.json()
+      const result = await post('/api/compras', compraData)
 
       if (result.success) {
         alert(`¡Compra reservada! Referencia: ${result.detalles.referencia}`)
@@ -421,8 +404,7 @@ export function CompraRifa() {
         setImagenComprobante(null)
         setPreviewImagen(null)
         // Recargar tickets
-        const ticketsResponse = await fetch(`/api/rifas/${rifaSeleccionada.id}/tickets`)
-        const ticketsData = await ticketsResponse.json()
+        const ticketsData = await get(`/api/rifas/${rifaSeleccionada.id}/tickets`)
         if (ticketsData.success) {
           setTickets(ticketsData.tickets)
         }

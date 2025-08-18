@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { get, post, put, del } from '@/lib/api-client'
 
 interface RedSocial {
   id: string
@@ -26,8 +27,7 @@ export default function RedesSocialesPage() {
 
   const cargarRedes = async () => {
     try {
-      const response = await fetch('/api/admin/redes-sociales')
-      const data = await response.json()
+      const data = await get('/api/admin/redes-sociales')
       setRedes(data)
     } catch (error) {
       console.error('Error cargando redes sociales:', error)
@@ -55,20 +55,15 @@ export default function RedesSocialesPage() {
     if (!editingRed) return
 
     try {
-      const method = isCreating ? 'POST' : 'PUT'
       const url = '/api/admin/redes-sociales'
-      
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editingRed)
-      })
-
-      if (response.ok) {
-        alert(isCreating ? 'Red social creada exitosamente' : 'Red social actualizada exitosamente')
-        setEditingRed(null)
-        cargarRedes()
+      if (isCreating) {
+        await post(url, editingRed)
+      } else {
+        await put(url, editingRed)
       }
+      alert(isCreating ? 'Red social creada exitosamente' : 'Red social actualizada exitosamente')
+      setEditingRed(null)
+      cargarRedes()
     } catch (error) {
       console.error('Error guardando red social:', error)
       alert('Error guardando red social')
@@ -77,11 +72,7 @@ export default function RedesSocialesPage() {
 
   const toggleActivo = async (id: string, activo: boolean) => {
     try {
-      await fetch('/api/admin/redes-sociales', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, activo })
-      })
+      await put('/api/admin/redes-sociales', { id, activo })
       cargarRedes()
     } catch (error) {
       console.error('Error actualizando estado:', error)
@@ -92,9 +83,7 @@ export default function RedesSocialesPage() {
     if (!confirm('¿Estás seguro de eliminar esta red social?')) return
 
     try {
-      await fetch(`/api/admin/redes-sociales?id=${id}`, {
-        method: 'DELETE'
-      })
+      await del(`/api/admin/redes-sociales?id=${id}`)
       alert('Red social eliminada exitosamente')
       cargarRedes()
     } catch (error) {

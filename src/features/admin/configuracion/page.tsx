@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { formatCurrencyFlexible } from '@/lib/utils'
+import { get, put, post } from '@/lib/api-client'
 
 interface ConfiguracionSitio {
   id: string
@@ -25,8 +26,7 @@ export default function ConfiguracionPage() {
 
   const cargarConfiguracion = async () => {
     try {
-      const response = await fetch('/api/admin/configuracion')
-      const json = await response.json()
+      const json = await get('/api/admin/configuracion')
       const payload: any = json?.success ? json.data : json
 
       if (Array.isArray(payload)) {
@@ -61,11 +61,7 @@ export default function ConfiguracionPage() {
   const guardarConfiguracion = async () => {
     setSaving(true)
     try {
-      await fetch('/api/admin/configuracion', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ configuraciones: editedConfig })
-      })
+      await put('/api/admin/configuracion', { configuraciones: editedConfig })
 
       alert('Configuración guardada exitosamente')
       cargarConfiguracion()
@@ -81,8 +77,7 @@ export default function ConfiguracionPage() {
     try {
       const fd = new FormData()
       fd.append('file', file)
-      const res = await fetch('/api/upload', { method: 'POST', body: fd })
-      const json = await res.json()
+      const json = await post('/api/upload', fd)
       if (json?.success && json?.url) {
         handleChange('logo_url', json.url)
         alert('Logo subido correctamente')

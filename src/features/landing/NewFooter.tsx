@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { get } from '@/lib/api-client'
 
 interface RedSocial {
   id: string
@@ -20,8 +21,7 @@ export function NewFooter() {
 
   useEffect(() => {
     // Cargar redes sociales
-    fetch('/api/redes-sociales')
-      .then(res => res.json())
+    get('/api/redes-sociales')
       .then(json => {
         const data = json?.success ? json.data : json
         setRedes(data.filter((r: RedSocial) => r.activo))
@@ -29,8 +29,7 @@ export function NewFooter() {
       .catch(console.error)
 
     // Cargar configuración
-    fetch('/api/configuracion')
-      .then(res => res.json())
+    get('/api/configuracion')
       .then(json => {
         const payload = json?.success ? json.data : json
         const configObj: Record<string, string> = {}
