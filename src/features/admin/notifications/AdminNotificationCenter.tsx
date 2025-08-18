@@ -17,6 +17,7 @@ export function AdminNotificationCenter() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [filter, setFilter] = useState<'all' | 'unread'>('all')
   const [search, setSearch] = useState('')
+  const [adminId, setAdminId] = useState<string | null>(null)
 
   useEffect(() => {
     get('/api/admin/notificaciones?limit=50')
@@ -41,6 +42,18 @@ export function AdminNotificationCenter() {
     return () => es.close()
   }, [])
 
+  useEffect(() => {
+    get('/api/auth/me')
+      .then(data => {
+        if (data.success) {
+          setAdminId(data.user.id)
+        }
+      })
+      .catch(err => {
+        console.error('Error fetching current user', err)
+      })
+  }, [])
+
   const filtered = notifications.filter(n => {
     if (filter === 'unread' && n.leida) return false
     if (search && !n.titulo.toLowerCase().includes(search.toLowerCase()) &&
@@ -49,7 +62,8 @@ export function AdminNotificationCenter() {
   })
 
   const markAllRead = async () => {
-    await patch('/api/admin/notificaciones', { adminId: 'admin-demo' })
+    if (!adminId) return
+    await patch('/api/admin/notificaciones', { adminId })
     setNotifications(prev => prev.map(n => ({ ...n, leida: true })))
   }
 
