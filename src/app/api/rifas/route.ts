@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireAuth, isAdmin } from '@/lib/auth'
 import { EstadoRifa } from '@/types'
 import { z } from 'zod'
 
@@ -44,7 +45,8 @@ export async function GET(request: NextRequest) {
     }
     
     // Solo rifas activas para el público
-    if (!request.headers.get('admin')) {
+    const currentUser = await requireAuth(request)
+    if (!currentUser || !isAdmin(currentUser)) {
       where.estado = EstadoRifa.ACTIVA
     }
     
@@ -110,11 +112,17 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Solo admins pueden crear rifas
-    const isAdmin = request.headers.get('admin') === 'true'
-    if (!isAdmin) {
+    const currentUser = await requireAuth(request)
+    if (!currentUser) {
       return NextResponse.json(
-        { success: false, error: 'No autorizado' },
+        { success: false, error: 'No autenticado' },
         { status: 401 }
+      )
+    }
+    if (!isAdmin(currentUser)) {
+      return NextResponse.json(
+        { success: false, error: 'Acceso denegado' },
+        { status: 403 }
       )
     }
     
