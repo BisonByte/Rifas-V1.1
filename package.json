@@ -26,6 +26,10 @@
     "db:backup": "./scripts/backup-database.sh full",
     "db:test-connection": "tsx scripts/test-db-connection.ts",
     "db:migrate-data": "node scripts/migrate-to-postgres.js",
+    "db:switch": "node scripts/switch-db.js",
+    "db:switch-sqlite": "node scripts/switch-db.js sqlite",
+    "db:switch-postgres": "node scripts/switch-db.js postgres",
+    "db:status": "node scripts/switch-db.js status",
     "vps:setup": "powershell -ExecutionPolicy Bypass -File scripts/setup-vps.ps1",
     "postinstall": "prisma generate"
   },
