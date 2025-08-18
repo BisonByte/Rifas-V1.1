@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { createOrder } from '@/lib/paypal'
 
 const CompraSchema = z.object({
   rifaId: z.string().min(1, 'ID de rifa requerido'),
@@ -124,6 +125,23 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    // Crear orden de pago con PayPal
+    let paymentLink: string | null = null
+    let paymentId: string | null = null
+    try {
+      const order = await createOrder(validatedData.metodoPago.montoTotal)
+      if (order?.id) {
+        paymentId = order.id
+        paymentLink = order.approvalLink || order.approvalUrl || null
+        await prisma.compra.update({
+          where: { id: compra.id },
+          data: { paymentId }
+        })
+      }
+    } catch (err) {
+      console.error('Error creando orden PayPal:', err)
+    }
+
     // Reservar los tickets seleccionados/asignados
     await prisma.ticket.updateMany({
       where: {
@@ -159,6 +177,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       compraId: compra.id,
+      paymentId,
+      paymentLink,
       mensaje: 'Compra procesada exitosamente',
       detalles: {
         participante: participante.nombre,
