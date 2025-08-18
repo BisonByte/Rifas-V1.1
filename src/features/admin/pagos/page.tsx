@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/badge'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
-import { get } from '@/lib/api-client'
+import { get, post } from '@/lib/api-client'
 import { 
   Search,
   Filter,
@@ -31,7 +31,7 @@ interface Pago {
   monto: number
   metodoPago: string
   referencia: string
-  estado: 'PENDIENTE' | 'APROBADO' | 'RECHAZADO'
+  estado: 'PENDIENTE' | 'CONFIRMADO' | 'RECHAZADO'
   fechaCreacion: string
   tickets: number[]
   comprobante?: string
@@ -41,40 +41,43 @@ export default function PagosPage() {
   const [pagos, setPagos] = useState<Pago[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [actionMessage, setActionMessage] = useState<
+    { type: 'success' | 'error'; text: string } | null
+  >(null)
+
+  const fetchPagos = async () => {
+    try {
+      const json = await get('/api/admin/verificar-pagos', { cache: 'no-store' })
+      const mapped = (json.data || []).map((p: any) => ({
+        id: p.id,
+        participante: {
+          nombre: p.participante?.nombre || '',
+          cedula: p.participante?.cedula || '',
+          telefono: p.participante?.celular || ''
+        },
+        evento: { nombre: p.rifa?.nombre || '' },
+        monto: p.monto,
+        metodoPago: p.metodoPago || '',
+        referencia: p.numeroReferencia || '',
+        estado:
+          p.estadoPago === 'CONFIRMADO'
+            ? 'CONFIRMADO'
+            : p.estadoPago === 'RECHAZADO'
+            ? 'RECHAZADO'
+            : 'PENDIENTE',
+        fechaCreacion: p.fechaCreacion || p.createdAt,
+        tickets: p.numerosTickets || p.tickets || [],
+        comprobante: p.comprobante || undefined
+      }))
+      setPagos(mapped)
+    } catch (err: any) {
+      setError(err.message || 'Error desconocido')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchPagos = async () => {
-      try {
-        const json = await get('/api/admin/verificar-pagos', { cache: 'no-store' })
-        const mapped = (json.data || []).map((p: any) => ({
-          id: p.id,
-          participante: {
-            nombre: p.participante?.nombre || '',
-            cedula: p.participante?.cedula || '',
-            telefono: p.participante?.celular || ''
-          },
-          evento: { nombre: p.rifa?.nombre || '' },
-          monto: p.monto,
-          metodoPago: p.metodoPago || '',
-          referencia: p.numeroReferencia || '',
-          estado:
-            p.estadoPago === 'CONFIRMADO'
-              ? 'APROBADO'
-              : p.estadoPago === 'RECHAZADO'
-              ? 'RECHAZADO'
-              : 'PENDIENTE',
-          fechaCreacion: p.fechaCreacion || p.createdAt,
-          tickets: p.numerosTickets || p.tickets || [],
-          comprobante: p.comprobante || undefined
-        }))
-        setPagos(mapped)
-      } catch (err: any) {
-        setError(err.message || 'Error desconocido')
-      } finally {
-        setLoading(false)
-      }
-    }
-
     fetchPagos()
   }, [])
   
@@ -85,8 +88,8 @@ export default function PagosPage() {
     switch (estado) {
       case 'PENDIENTE':
         return <Badge className="bg-yellow-500 text-black flex items-center"><Clock className="h-3 w-3 mr-1" />Pendiente</Badge>
-      case 'APROBADO':
-        return <Badge className="bg-green-500 text-white flex items-center"><CheckCircle className="h-3 w-3 mr-1" />Aprobado</Badge>
+      case 'CONFIRMADO':
+        return <Badge className="bg-green-500 text-white flex items-center"><CheckCircle className="h-3 w-3 mr-1" />Confirmado</Badge>
       case 'RECHAZADO':
         return <Badge className="bg-red-500 text-white flex items-center"><XCircle className="h-3 w-3 mr-1" />Rechazado</Badge>
       default:
@@ -104,21 +107,45 @@ export default function PagosPage() {
     })
   }
 
+  const handleAction = async (
+    pagoId: string,
+    accion: 'APROBAR' | 'RECHAZAR',
+    comentarios = ''
+  ) => {
+    try {
+      await post('/api/admin/verificar-pagos', {
+        compraId: pagoId,
+        accion,
+        comentarios,
+      })
+      await fetchPagos()
+      setActionMessage({
+        type: 'success',
+        text:
+          accion === 'APROBAR'
+            ? 'Pago confirmado correctamente'
+            : 'Pago rechazado correctamente',
+      })
+    } catch (err: any) {
+      setActionMessage({
+        type: 'error',
+        text:
+          err.message ||
+          (accion === 'APROBAR'
+            ? 'Error al confirmar el pago'
+            : 'Error al rechazar el pago'),
+      })
+    }
+  }
+
   const aprobarPago = async (pagoId: string) => {
-    // Aquí iría la lógica para aprobar el pago
-    setPagos(pagos.map(pago => 
-      pago.id === pagoId ? { ...pago, estado: 'APROBADO' as const } : pago
-    ))
+    await handleAction(pagoId, 'APROBAR')
   }
 
   const rechazarPago = async (pagoId: string) => {
     const razon = prompt('Motivo del rechazo:')
     if (!razon) return
-
-    // Aquí iría la lógica para rechazar el pago
-    setPagos(pagos.map(pago => 
-      pago.id === pagoId ? { ...pago, estado: 'RECHAZADO' as const } : pago
-    ))
+    await handleAction(pagoId, 'RECHAZAR', razon)
   }
 
   const pagosFiltrados = pagos.filter(pago => {
@@ -134,7 +161,7 @@ export default function PagosPage() {
   const contadorEstados = {
     TODOS: pagos.length,
     PENDIENTE: pagos.filter(p => p.estado === 'PENDIENTE').length,
-    APROBADO: pagos.filter(p => p.estado === 'APROBADO').length,
+    CONFIRMADO: pagos.filter(p => p.estado === 'CONFIRMADO').length,
     RECHAZADO: pagos.filter(p => p.estado === 'RECHAZADO').length
   }
 
@@ -159,6 +186,12 @@ export default function PagosPage() {
 
   return (
     <div className="p-6 space-y-6">
+      {actionMessage && (
+        <Alert variant={actionMessage.type === 'success' ? 'success' : 'destructive'}>
+          <AlertTitle>{actionMessage.type === 'success' ? 'Éxito' : 'Error'}</AlertTitle>
+          <AlertDescription>{actionMessage.text}</AlertDescription>
+        </Alert>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -199,8 +232,8 @@ export default function PagosPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold text-green-500">{contadorEstados.APROBADO}</p>
-                <p className="text-sm text-gray-400">Aprobados</p>
+                <p className="text-2xl font-bold text-green-500">{contadorEstados.CONFIRMADO}</p>
+                <p className="text-sm text-gray-400">Confirmados</p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-500" />
             </div>
