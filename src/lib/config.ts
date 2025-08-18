@@ -126,13 +126,24 @@ export const CONFIG = {
 
   // Configuración de email
   EMAIL: {
-    SMTP_ENABLED: !!getConfigValue('SMTP_HOST'),
+    SMTP_ENABLED:
+      getConfigValue('SMTP_ENABLED') !== undefined
+        ? getConfigValue('SMTP_ENABLED') === 'true'
+        : !!getConfigValue('SMTP_HOST'),
     HOST: getConfigValue('SMTP_HOST'),
     PORT: getConfigValue('SMTP_PORT') ? parseInt(getConfigValue('SMTP_PORT') as string) : 587,
     USER: getConfigValue('SMTP_USER'),
     PASSWORD: getConfigValue('SMTP_PASSWORD'),
     FROM_ADDRESS: getConfigValue('FROM_EMAIL') || 'noreply@rifas.com',
     TEMPLATES_PATH: '/templates/email',
+    TEMPLATES: (() => {
+      try {
+        const raw = getConfigValue('EMAIL_TEMPLATES')
+        return raw ? JSON.parse(raw) : {}
+      } catch {
+        return {}
+      }
+    })(),
   },
 
   PAYPAL: {
@@ -143,11 +154,22 @@ export const CONFIG = {
 
   // Configuración de SMS
   SMS: {
-    ENABLED: !!process.env.SMS_PROVIDER,
-    PROVIDER: process.env.SMS_PROVIDER || 'twilio',
-    ACCOUNT_SID: process.env.SMS_ACCOUNT_SID,
-    AUTH_TOKEN: process.env.SMS_AUTH_TOKEN,
-    FROM: process.env.SMS_FROM || 'Rifas',
+    ENABLED:
+      getConfigValue('SMS_ENABLED') !== undefined
+        ? getConfigValue('SMS_ENABLED') === 'true'
+        : !!process.env.SMS_PROVIDER,
+    PROVIDER: getConfigValue('SMS_PROVIDER') || process.env.SMS_PROVIDER || 'twilio',
+    ACCOUNT_SID: getConfigValue('SMS_ACCOUNT_SID') || process.env.SMS_ACCOUNT_SID,
+    AUTH_TOKEN: getConfigValue('SMS_AUTH_TOKEN') || process.env.SMS_AUTH_TOKEN,
+    FROM: getConfigValue('SMS_FROM') || process.env.SMS_FROM || 'Rifas',
+    TEMPLATES: (() => {
+      try {
+        const raw = getConfigValue('SMS_TEMPLATES')
+        return raw ? JSON.parse(raw) : {}
+      } catch {
+        return {}
+      }
+    })(),
   },
 
   // Contacto de administradores

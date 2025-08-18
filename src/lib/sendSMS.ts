@@ -1,9 +1,16 @@
 import { CONFIG } from '@/lib/config'
 
-export async function sendSMS(to: string, body: string) {
+export async function sendSMS(to: string, body: string, type?: string) {
   if (!CONFIG.SMS.ENABLED) {
     console.warn('SMS no está configurado')
     return
+  }
+
+  if (type) {
+    const template = (CONFIG.SMS.TEMPLATES as Record<string, any>)[type]
+    if (template?.body) {
+      body = template.body
+    }
   }
 
   if (CONFIG.SMS.PROVIDER !== 'twilio') {
