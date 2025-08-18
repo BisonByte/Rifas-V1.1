@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { TicketVerifier } from '@/components/landing/TicketVerifier'
+import { TicketVerifier } from '@/features/landing/TicketVerifier'
 
 type SiteConfig = Record<string, any>
 
