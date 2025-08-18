@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { get } from '@/lib/api-client'
 
 interface RedSocial {
   id: string
@@ -14,8 +15,7 @@ export function SocialLinks() {
   const [redes, setRedes] = useState<RedSocial[]>([])
 
   useEffect(() => {
-    fetch('/api/redes-sociales')
-      .then(res => res.json())
+    get('/api/redes-sociales')
       .then(json => {
         const data = json?.success ? json.data : json
         setRedes(data.filter((r: RedSocial) => r.activo))

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { get, patch } from '@/lib/api-client'
 
 interface Notification {
   id: string
@@ -18,8 +19,7 @@ export function AdminNotificationCenter() {
   const [search, setSearch] = useState('')
 
   useEffect(() => {
-    fetch('/api/admin/notificaciones?limit=50')
-      .then(res => res.json())
+    get('/api/admin/notificaciones?limit=50')
       .then(data => {
         if (data.success) {
           setNotifications(data.data || [])
@@ -49,11 +49,7 @@ export function AdminNotificationCenter() {
   })
 
   const markAllRead = async () => {
-    await fetch('/api/admin/notificaciones', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ adminId: 'admin-demo' })
-    })
+    await patch('/api/admin/notificaciones', { adminId: 'admin-demo' })
     setNotifications(prev => prev.map(n => ({ ...n, leida: true })))
   }
 

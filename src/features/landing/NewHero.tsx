@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { get } from '@/lib/api-client'
 
 interface ConfiguracionSitio {
   id: string
@@ -17,8 +18,7 @@ export function NewHero() {
 
   useEffect(() => {
     // Cargar configuración del sitio (tolera {success,data} u arreglo legacy)
-    fetch('/api/configuracion')
-      .then(res => res.json())
+    get('/api/configuracion')
       .then((json) => {
         const payload: any = json?.success ? json.data : json
         const configObj: Record<string, string> = {}

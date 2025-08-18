@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { get } from '@/lib/api-client'
 
 interface MetodoPago {
   id: string
@@ -16,8 +17,7 @@ export function PaymentMethods() {
   const [selectedMethod, setSelectedMethod] = useState<string>('')
 
   useEffect(() => {
-    fetch('/api/metodos-pago')
-      .then(res => res.json())
+    get('/api/metodos-pago')
       .then(json => {
         const data = json?.success ? json.data : json
         setMetodos(data.filter((m: MetodoPago) => m.activo))

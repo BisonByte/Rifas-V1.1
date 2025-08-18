@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { TicketVerifier } from '@/features/landing/TicketVerifier'
+import { get } from '@/lib/api-client'
 
 type SiteConfig = Record<string, any>
 
@@ -67,8 +68,7 @@ export function FloatingSupportButtons() {
   const [config, setConfig] = useState<SiteConfig>({})
 
   useEffect(() => {
-    fetch('/api/configuracion')
-      .then(async (res) => res.json())
+    get('/api/configuracion')
       .then((json) => {
         // Tolerar ambas formas: {success, data} o lista/objeto directo
         const maybe = (json?.success ? json.data : json) as any

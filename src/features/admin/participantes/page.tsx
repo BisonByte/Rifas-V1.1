@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/badge'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
+import { get } from '@/lib/api-client'
 import { 
   Search,
   Filter,
@@ -41,11 +42,7 @@ export default function ParticipantesPage() {
   useEffect(() => {
     const fetchParticipantes = async () => {
       try {
-        const res = await fetch('/api/admin/participantes', { cache: 'no-store' })
-        if (!res.ok) {
-          throw new Error('Error al cargar participantes')
-        }
-        const data = await res.json()
+        const data = await get('/api/admin/participantes', { cache: 'no-store' })
         setParticipantes(data.data || [])
       } catch (err: any) {
         setError(err.message || 'Error desconocido')
