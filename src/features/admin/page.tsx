@@ -5,16 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/badge'
 import { 
   Calendar, 
-  Users, 
-  Ticket, 
-  DollarSign, 
-  TrendingUp, 
-  TrendingDown,
+  Users,
+  Ticket,
+  DollarSign,
+  TrendingUp,
   Activity,
   Bell,
   Eye,
-  ArrowUpRight,
-  ArrowDownRight,
   Zap
 } from 'lucide-react'
 
@@ -23,9 +20,6 @@ interface DashboardStats {
   totalParticipantes: number
   totalTickets: number
   totalIngresos: number
-  ventasHoy: number
-  ventasSemana: number
-  eventosActivos: number
 }
 
 interface EventoResumen {
@@ -37,20 +31,36 @@ interface EventoResumen {
 }
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState<DashboardStats>({
-    totalEventos: 2,
-    totalParticipantes: 3519,
-    totalTickets: 14320,
-    totalIngresos: 271000,
-    ventasHoy: 1240,
-    ventasSemana: 8950,
-    eventosActivos: 2
-  })
+  const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [eventosTop, setEventosTop] = useState<EventoResumen[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const [eventosTop] = useState<EventoResumen[]>([
-    { id: '1', nombre: 'EVENTO AZUL ES HOY', ticketsVendidos: 5420, ingresos: 271000, estado: 'ACTIVO' },
-    { id: '2', nombre: 'EVENTO GRATIS', ticketsVendidos: 8900, ingresos: 0, estado: 'ACTIVO' }
-  ])
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const res = await fetch('/api/admin/dashboard')
+        if (!res.ok) throw new Error('Error en la respuesta')
+        const data = await res.json()
+        setStats(data.stats)
+        setEventosTop(data.eventosTop)
+      } catch (e) {
+        console.error('Error cargando dashboard:', e)
+        setError('No se pudo cargar el dashboard')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchDashboard()
+  }, [])
+
+  if (loading) {
+    return <div className="p-6">Cargando dashboard...</div>
+  }
+
+  if (error) {
+    return <div className="p-6 text-red-500">{error}</div>
+  }
 
   return (
     <div className="p-6 space-y-8 animate-fade-in-up">
@@ -89,7 +99,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-blue-200 text-sm font-medium">Total Eventos</p>
-                <p className="text-3xl font-bold text-white mt-1">{stats.totalEventos}</p>
+                <p className="text-3xl font-bold text-white mt-1">{stats ? stats.totalEventos : 0}</p>
                 <div className="flex items-center space-x-1 mt-2">
                   <TrendingUp className="h-4 w-4 text-green-400" />
                   <span className="text-green-400 text-sm">+12% vs mes anterior</span>
@@ -109,7 +119,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-green-200 text-sm font-medium">Participantes</p>
-                <p className="text-3xl font-bold text-white mt-1">{stats.totalParticipantes.toLocaleString()}</p>
+                <p className="text-3xl font-bold text-white mt-1">{stats ? stats.totalParticipantes.toLocaleString() : 0}</p>
                 <div className="flex items-center space-x-1 mt-2">
                   <TrendingUp className="h-4 w-4 text-green-400" />
                   <span className="text-green-400 text-sm">+28% vs mes anterior</span>
@@ -129,7 +139,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-purple-200 text-sm font-medium">Tickets Vendidos</p>
-                <p className="text-3xl font-bold text-white mt-1">{stats.totalTickets.toLocaleString()}</p>
+                <p className="text-3xl font-bold text-white mt-1">{stats ? stats.totalTickets.toLocaleString() : 0}</p>
                 <div className="flex items-center space-x-1 mt-2">
                   <TrendingUp className="h-4 w-4 text-green-400" />
                   <span className="text-green-400 text-sm">+45% vs mes anterior</span>
@@ -149,7 +159,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-yellow-200 text-sm font-medium">Ingresos Totales</p>
-                <p className="text-3xl font-bold text-white mt-1">${stats.totalIngresos.toLocaleString()}</p>
+                <p className="text-3xl font-bold text-white mt-1">${stats ? stats.totalIngresos.toLocaleString() : 0}</p>
                 <div className="flex items-center space-x-1 mt-2">
                   <TrendingUp className="h-4 w-4 text-green-400" />
                   <span className="text-green-400 text-sm">+31% vs mes anterior</span>
