@@ -11,7 +11,7 @@ import { get, put, post } from '@/lib/api-client'
 interface ConfiguracionSitio {
   id: string
   clave: string
-  valor: string
+  valor: any
 }
 
 export default function ConfiguracionPage() {
@@ -33,7 +33,10 @@ export default function ConfiguracionPage() {
         setConfig(payload as any)
         const obj: Record<string, string> = {}
         ;(payload as any[]).forEach((item: any) => {
-          obj[item.clave] = item.valor
+          obj[item.clave] =
+            typeof item.valor === 'object'
+              ? JSON.stringify(item.valor)
+              : String(item.valor)
         })
         setEditedConfig(obj)
       } else if (payload && typeof payload === 'object') {
@@ -42,7 +45,10 @@ export default function ConfiguracionPage() {
           Object.entries(payload).map(([clave, valor]) => ({
             id: clave,
             clave,
-            valor: String(valor)
+            valor:
+              typeof valor === 'object'
+                ? JSON.stringify(valor)
+                : String(valor)
           }))
         )
         setEditedConfig(payload)
