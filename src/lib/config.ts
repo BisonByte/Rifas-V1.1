@@ -106,19 +106,31 @@ export const CONFIG = {
     FORMATOS_PERMITIDOS: ['jpg', 'jpeg', 'png', 'pdf'],
     RUTA_UPLOADS: '/uploads',
   },
-  
-  // Configuración de email (para futuras implementaciones)
+
+  // Configuración de email
   EMAIL: {
-    SMTP_ENABLED: false,
-    FROM_ADDRESS: 'noreply@rifas.com',
+    SMTP_ENABLED: !!process.env.SMTP_HOST,
+    HOST: process.env.SMTP_HOST,
+    PORT: process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT) : 587,
+    USER: process.env.SMTP_USER,
+    PASSWORD: process.env.SMTP_PASSWORD,
+    FROM_ADDRESS: process.env.FROM_EMAIL || 'noreply@rifas.com',
     TEMPLATES_PATH: '/templates/email',
   },
-  
-  // Configuración de SMS (para futuras implementaciones)
+
+  // Configuración de SMS
   SMS: {
-    ENABLED: false,
-    PROVIDER: 'twilio', // twilio, vonage, etc.
-    SENDER_ID: 'Rifas',
+    ENABLED: !!process.env.SMS_PROVIDER,
+    PROVIDER: process.env.SMS_PROVIDER || 'twilio',
+    ACCOUNT_SID: process.env.SMS_ACCOUNT_SID,
+    AUTH_TOKEN: process.env.SMS_AUTH_TOKEN,
+    FROM: process.env.SMS_FROM || 'Rifas',
+  },
+
+  // Contacto de administradores
+  ADMIN: {
+    EMAIL: process.env.ADMIN_EMAIL,
+    PHONE: process.env.ADMIN_PHONE,
   },
   
   // Configuración de desarrollo

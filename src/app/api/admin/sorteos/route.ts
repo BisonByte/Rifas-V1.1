@@ -6,6 +6,9 @@ export const dynamic = 'force-dynamic'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { requireAuth, isAdmin } from '@/lib/auth'
+import { sendEmail } from '@/lib/sendEmail'
+import { sendSMS } from '@/lib/sendSMS'
+import { CONFIG } from '@/lib/config'
 
 const RealizarSorteoSchema = z.object({
   rifaId: z.string(),
@@ -299,7 +302,46 @@ export async function POST(request: NextRequest) {
   }, {
     timeout: 30000 // 30 segundos timeout para sorteos grandes
   })
-  
+
+  if (transaction.success) {
+    try {
+      const ganadores = await prisma.ganador.findMany({
+        where: { sorteoId: transaction.data.sorteoId },
+        include: { participante: true, premio: true }
+      })
+      for (const g of ganadores) {
+        if (g.participante.email) {
+          await sendEmail(
+            g.participante.email,
+            `¡Ganaste ${g.premio.nombre}!`,
+            `Tu ticket #${g.numeroTicket} resultó ganador en la rifa ${transaction.data.rifaNombre}.`
+          )
+        }
+        if (g.participante.celular) {
+          await sendSMS(
+            g.participante.celular,
+            `Ganaste ${g.premio.nombre} en la rifa ${transaction.data.rifaNombre}. Ticket #${g.numeroTicket}.`
+          )
+        }
+      }
+      if (CONFIG.ADMIN.EMAIL) {
+        await sendEmail(
+          CONFIG.ADMIN.EMAIL,
+          `Sorteo realizado: ${transaction.data.rifaNombre}`,
+          `Se completó el sorteo con ${transaction.data.ganadores.length} ganadores.`
+        )
+      }
+      if (CONFIG.ADMIN.PHONE) {
+        await sendSMS(
+          CONFIG.ADMIN.PHONE,
+          `Sorteo ${transaction.data.rifaNombre} con ${transaction.data.ganadores.length} ganadores.`
+        )
+      }
+    } catch (err) {
+      console.error('Error enviando notificaciones de sorteo', err)
+    }
+  }
+
   return NextResponse.json(transaction)
 }
 
