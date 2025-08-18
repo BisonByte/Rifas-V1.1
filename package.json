@@ -25,7 +25,6 @@
     "db:clean-expired": "tsx scripts/optimize-database.ts clean-expired",
     "db:backup": "./scripts/backup-database.sh full",
     "db:test-connection": "tsx scripts/test-db-connection.ts",
-    "db:migrate-data": "node scripts/migrate-to-postgres.js",
     "vps:setup": "powershell -ExecutionPolicy Bypass -File scripts/setup-vps.ps1",
     "postinstall": "prisma generate"
   },
