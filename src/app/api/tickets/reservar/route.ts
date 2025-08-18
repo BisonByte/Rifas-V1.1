@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { sendEmail } from '@/lib/sendEmail'
+import { sendSMS } from '@/lib/sendSMS'
+import { CONFIG } from '@/lib/config'
 
 export const dynamic = 'force-dynamic'
 
@@ -136,9 +139,42 @@ export async function POST(request: NextRequest) {
       return {
         compra,
         tickets: ticketsCreados,
-        participante: participanteRecord
+        participante: participanteRecord,
+        rifa
       }
     })
+
+    // Notificar al participante
+    try {
+      if (resultado.participante.email) {
+        await sendEmail(
+          resultado.participante.email,
+          `Reserva de tickets en ${resultado.rifa.nombre}`,
+          `Has reservado ${resultado.tickets.length} tickets para la rifa ${resultado.rifa.nombre}.`
+        )
+      }
+      await sendSMS(
+        resultado.participante.celular,
+        `Has reservado ${resultado.tickets.length} tickets para la rifa ${resultado.rifa.nombre}.`
+      )
+
+      // Notificar al administrador
+      if (CONFIG.ADMIN.EMAIL) {
+        await sendEmail(
+          CONFIG.ADMIN.EMAIL,
+          'Nueva compra registrada',
+          `${resultado.participante.nombre} reservó ${resultado.tickets.length} tickets en ${resultado.rifa.nombre}.`
+        )
+      }
+      if (CONFIG.ADMIN.PHONE) {
+        await sendSMS(
+          CONFIG.ADMIN.PHONE,
+          `Nueva compra: ${resultado.tickets.length} tickets en ${resultado.rifa.nombre}.`
+        )
+      }
+    } catch (err) {
+      console.error('Error enviando notificaciones de compra', err)
+    }
 
     return NextResponse.json({
       success: true,
