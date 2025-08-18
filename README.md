@@ -10,7 +10,7 @@ Un sistema completo de rifas desarrollado con **Next.js 14**, **Prisma** y **Typ
 
 ## ✨ Características Principales
 
-- 🎨 **Diseño Moderno**: Interfaz profesional con efectos glassmorphism y animaciones fluidas
+- 🎨 **Diseño Moderno**: Interfaz profesional con glassmorphism, gradientes, tema oscuro y animaciones fluidas
 - 🔐 **Autenticación Segura**: Sistema de login para administradores con JWT
 - 📊 **Panel de Administración**: Dashboard completo con estadísticas en tiempo real
 - 🎫 **Gestión de Tickets**: Sistema completo de reserva y venta de boletos
@@ -180,6 +180,8 @@ NEXTAUTH_SECRET="otra-clave-segura-para-nextauth"
 - 💰 Control de pagos y transacciones
 - 📈 Reportes y analytics
 - ⚙️ Configuración del sistema
+- 🎟️ Control de tickets: visualiza y gestiona boletos vendidos
+- 🔔 Notificaciones en tiempo real
 
 ## 🚀 Despliegue
 
@@ -188,14 +190,60 @@ NEXTAUTH_SECRET="otra-clave-segura-para-nextauth"
 2. Configura las variables de entorno
 3. Despliega automáticamente
 
-### VPS/Servidor Propio
-```bash
-# Construir la aplicación
-npm run build
+### VPS/Servidor Propio (Ubuntu 22.04)
+1. **Actualizar e instalar dependencias**
+   ```bash
+   sudo apt update && sudo apt install -y git curl build-essential postgresql
+   curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+   sudo apt install -y nodejs
+   sudo npm install -g pm2
+   ```
 
-# Iniciar en producción
-npm run start
-```
+2. **Clonar el repositorio**
+   ```bash
+   git clone https://github.com/tu-usuario/sistema-rifas.git
+   cd sistema-rifas
+   ```
+
+3. **Configurar variables de entorno**
+   ```bash
+   cp .env.example .env
+   nano .env   # Ajusta DATABASE_URL, JWT_SECRET, NEXTAUTH_URL
+   ```
+
+4. **Instalar dependencias**
+   ```bash
+   npm ci --omit=dev
+   ```
+
+5. **Configurar base de datos**
+   ```bash
+   npx prisma migrate deploy
+   npx tsx scripts/create-admin.ts
+   ```
+
+6. **Compilar la aplicación**
+   ```bash
+   npm run build
+   ```
+
+7. **Iniciar con PM2**
+   ```bash
+   pm2 start ecosystem.config.json
+   pm2 save
+   ```
+
+8. **Configurar Nginx (opcional)**
+   ```nginx
+   server {
+       server_name tu-dominio.com;
+       location / {
+           proxy_pass http://localhost:3000;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+       }
+   }
+   ```
 
 ## 🤝 Contribuir
 
@@ -227,55 +275,8 @@ Si tienes preguntas o necesitas ayuda:
 ---
 
 ⭐ **Si este proyecto te fue útil, considera darle una estrella en GitHub!**
-
-## Características del Admin Panel
-
-- **Dashboard**: Estadísticas en tiempo real con animaciones
-- **Gestión de Rifas**: Crear, editar y gestionar rifas
-- **Control de Tickets**: Visualizar y gestionar boletos vendidos
-- **Usuarios**: Administración completa de usuarios
-- **Pagos**: Verificación y gestión de pagos
-- **Notificaciones**: Sistema de notificaciones en tiempo real
-
-## Características de Diseño
-
-- **Animaciones Fluidas**: Transiciones y efectos modernos
-- **Glassmorphism**: Efectos de vidrio modernos
-- **Gradientes**: Colores vibrantes y modernos
-- **Responsivo**: Perfecto en móviles y escritorio
-- **Dark Theme**: Diseño oscuro profesional
-
-## Despliegue
-
-### Vercel (Recomendado)
-1. Conecta tu repositorio en Vercel
-2. Configura las variables de entorno
-3. Despliega automáticamente
-
-### VPS/Servidor Propio
-1. Usa el archivo ecosystem.config.json para PM2
-2. Configura nginx como proxy reverso
-3. Usa el script setup-vps.ps1 para automatizar
-
-## Licencia
-
-Este proyecto está bajo la Licencia MIT.
-
-## Contribuir
-
-Las contribuciones son bienvenidas. Por favor:
-
-1. Fork el proyecto
-2. Crea una rama para tu feature
-3. Commit tus cambios
-4. Push a la rama
-5. Abre un Pull Request
-
-## Soporte
-
-Si encuentras algún bug o tienes sugerencias, por favor abre un issue en GitHub.
-
 ---
 
 Desarrollado con ❤️ para crear la mejor experiencia de rifas online.
+
 
