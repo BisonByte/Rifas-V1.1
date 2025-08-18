@@ -245,6 +245,81 @@ NEXTAUTH_SECRET="otra-clave-segura-para-nextauth"
    }
    ```
 
+#### Tutorial de instalación paso a paso (Ubuntu 22.04)
+
+1. **Preparar el servidor**
+   ```bash
+   sudo apt update && sudo apt install -y git curl build-essential postgresql
+   curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+   sudo apt install -y nodejs
+   sudo npm install -g pm2
+   ```
+
+2. **Crear la base de datos y un usuario**
+   ```bash
+   sudo -u postgres psql
+   ```
+   Dentro de la consola de PostgreSQL:
+   ```sql
+   CREATE DATABASE sistema_rifas;
+   CREATE USER sistema_user WITH PASSWORD 'tu_contraseña_segura';
+   GRANT ALL PRIVILEGES ON DATABASE sistema_rifas TO sistema_user;
+   \q
+   ```
+
+3. **Clonar el repositorio**
+   ```bash
+   git clone https://github.com/BisonByte/sistema-rifas.git
+   cd sistema-rifas
+   ```
+
+4. **Configurar variables de entorno**
+   ```bash
+   cp .env.example .env
+   nano .env
+   ```
+   Ajusta `DATABASE_URL`, `JWT_SECRET`, `NEXTAUTH_URL`, etc.
+
+5. **Instalar dependencias (modo producción)**
+   ```bash
+   npm ci --omit=dev
+   ```
+
+6. **Migraciones y creación del usuario administrador**
+   ```bash
+   npx prisma migrate deploy
+   npx tsx scripts/create-admin.ts
+   ```
+
+7. **Compilar la aplicación**
+   ```bash
+   npm run build
+   ```
+
+8. **Iniciar el servicio**
+   ```bash
+   pm2 start ecosystem.config.json
+   pm2 save
+   ```
+   Opcional: `pm2 startup`
+
+9. **Configurar Nginx (opcional)**
+   ```nginx
+   server {
+       server_name tu-dominio.com;
+       location / {
+           proxy_pass http://localhost:3000;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+       }
+   }
+   ```
+
+10. **Verificación final**
+    - Visita `http://tu-dominio.com` o la IP del VPS.
+    - Ingresa con el usuario administrador creado.
+    - Revisa logs con `pm2 logs` si algo falla.
+
 ## 🤝 Contribuir
 
 1. Haz fork del proyecto
