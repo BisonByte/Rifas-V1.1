@@ -117,6 +117,7 @@ model Compra {
   imagenComprobante String?    // URL de la imagen del comprobante
   bancoId         String?
   referencia      String?
+  paymentId       String?
   fechaVencimiento DateTime?
   
   createdAt       DateTime     @default(now())
