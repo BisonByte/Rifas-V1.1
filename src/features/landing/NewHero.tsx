@@ -17,7 +17,7 @@ export function NewHero() {
 
   useEffect(() => {
     // Cargar configuración del sitio (tolera {success,data} u arreglo legacy)
-    fetch('/api/admin/configuracion')
+    fetch('/api/configuracion')
       .then(res => res.json())
       .then((json) => {
         const payload: any = json?.success ? json.data : json

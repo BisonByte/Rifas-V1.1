@@ -101,11 +101,10 @@ export function CompraRifa() {
 
     const cargarMetodosPago = async () => {
       try {
-        const response = await fetch('/api/admin/metodos-pago')
-        const data = await response.json()
-        if (data.success) {
-          setMetodosPago(data.data)
-        }
+        const response = await fetch('/api/metodos-pago')
+        const json = await response.json()
+        const data = json?.success ? json.data : json
+        setMetodosPago(data)
       } catch (error) {
         console.error('Error cargando métodos de pago:', error)
       }
@@ -116,26 +115,29 @@ export function CompraRifa() {
     })
   }, [])
 
-  // Cargar configuración de moneda y colores desde admin/configuracion
+    // Cargar configuración de moneda y colores desde configuracion pública
   useEffect(() => {
     const loadSiteConfig = async () => {
       try {
-        const res = await fetch('/api/admin/configuracion')
-        const data = await res.json()
-        if (data?.success) {
-          const map: Record<string, string> = {}
-          for (const item of data.data || []) map[item.clave] = item.valor
-          // Defaults: Venezuela
-          const code = map['currency_code'] || 'VES'
-          const symbol = map['currency_symbol'] || 'BsS'
-          const locale = map['currency_locale'] || 'es-VE'
-          const position = (map['currency_position'] as 'prefix'|'suffix') || 'suffix'
-          setMoneda({ code, symbol, locale, position })
-          // Colores del tema
-          const colorPrincipal = map['color_principal'] || '#2563eb'
-          const colorSecundario = map['color_secundario'] || '#7c3aed'
-          setTheme({ primary: colorPrincipal, secondary: colorSecundario })
+        const res = await fetch('/api/configuracion')
+        const json = await res.json()
+        const payload = json?.success ? json.data : json
+        const map: Record<string, string> = {}
+        if (Array.isArray(payload)) {
+          for (const item of payload) map[item.clave] = item.valor
+        } else if (payload && typeof payload === 'object') {
+          for (const [k, v] of Object.entries(payload)) map[k] = String(v)
         }
+        // Defaults: Venezuela
+        const code = map['currency_code'] || 'VES'
+        const symbol = map['currency_symbol'] || 'BsS'
+        const locale = map['currency_locale'] || 'es-VE'
+        const position = (map['currency_position'] as 'prefix'|'suffix') || 'suffix'
+        setMoneda({ code, symbol, locale, position })
+        // Colores del tema
+        const colorPrincipal = map['color_principal'] || '#2563eb'
+        const colorSecundario = map['color_secundario'] || '#7c3aed'
+        setTheme({ primary: colorPrincipal, secondary: colorSecundario })
       } catch {}
     }
     loadSiteConfig()

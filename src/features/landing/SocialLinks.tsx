@@ -14,9 +14,12 @@ export function SocialLinks() {
   const [redes, setRedes] = useState<RedSocial[]>([])
 
   useEffect(() => {
-    fetch('/api/admin/redes-sociales')
+    fetch('/api/redes-sociales')
       .then(res => res.json())
-      .then(data => setRedes(data.filter((r: RedSocial) => r.activo)))
+      .then(json => {
+        const data = json?.success ? json.data : json
+        setRedes(data.filter((r: RedSocial) => r.activo))
+      })
       .catch(console.error)
   }, [])
 
