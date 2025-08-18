@@ -1,17 +1,38 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { NewHero } from '@/features/landing/NewHero'
 import { CompraRifa } from '@/features/landing/CompraRifa'
 import { SocialLinks } from '@/features/landing/SocialLinks'
 import { NewFooter } from '@/features/landing/NewFooter'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { FloatingSupportButtons } from '@/features/landing/FloatingSupportButtons'
+import { get } from '@/lib/api-client'
 
 // Disable static generation due to dynamic content
 export const dynamic = 'force-dynamic'
 
 export default function HomePage() {
+  const [stats, setStats] = useState<{ disponibles: number; vendidos: number; reservados: number; total: number }>({ disponibles: 0, vendidos: 0, reservados: 0, total: 0 })
+
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const rifasResp = await get('/api/rifas')
+        const rifas = rifasResp?.success ? rifasResp.data : rifasResp
+        const firstRifa = Array.isArray(rifas) ? rifas[0] : null
+        if (!firstRifa) return
+        const statsResp = await get(`/api/rifas/${firstRifa.id}/stats`)
+        if (statsResp?.success) setStats(statsResp.data)
+      } catch (error) {
+        console.error('Error cargando estadísticas de tickets:', error)
+      }
+    }
+    loadStats()
+  }, [])
+
+  const progress = stats.total > 0 ? ((stats.vendidos + stats.reservados) / stats.total) * 100 : 0
+
   return (
     <div className="min-h-screen bg-black text-white relative overflow-hidden">
       {/* Fondo con efectos modernos */}
@@ -111,20 +132,23 @@ export default function HomePage() {
                       <div className="space-y-3 text-sm">
                         <div className="flex justify-between">
                           <span>🎫 Tickets disponibles:</span>
-                          <span className="text-green-400 font-bold">80</span>
+                          <span className="text-green-400 font-bold">{stats.disponibles}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>🔥 Tickets vendidos:</span>
-                          <span className="text-red-400 font-bold">20</span>
+                          <span className="text-red-400 font-bold">{stats.vendidos}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>⏳ Tickets reservados:</span>
-                          <span className="text-yellow-400 font-bold">0</span>
+                          <span className="text-yellow-400 font-bold">{stats.reservados}</span>
                         </div>
                         <div className="w-full bg-gray-700 rounded-full h-2 mt-4">
-                          <div className="bg-gradient-to-r from-green-500 to-yellow-500 h-2 rounded-full" style={{width: '20%'}}></div>
+                          <div
+                            className="bg-gradient-to-r from-green-500 to-yellow-500 h-2 rounded-full"
+                            style={{ width: `${progress}%` }}
+                          ></div>
                         </div>
-                        <p className="text-center text-xs opacity-75">20% completado</p>
+                        <p className="text-center text-xs opacity-75">{Math.round(progress)}% completado</p>
                       </div>
                     </div>
 
