@@ -1,12 +1,13 @@
 import axios from 'axios'
+import { CONFIG } from '@/lib/config'
 
-const PAYPAL_API = process.env.PAYPAL_ENV === 'live'
+const PAYPAL_API = CONFIG.PAYPAL.ENV === 'live'
   ? 'https://api-m.paypal.com'
   : 'https://api-m.sandbox.paypal.com'
 
 async function getAccessToken() {
-  const clientId = process.env.PAYPAL_CLIENT_ID
-  const clientSecret = process.env.PAYPAL_CLIENT_SECRET
+  const clientId = CONFIG.PAYPAL.CLIENT_ID
+  const clientSecret = CONFIG.PAYPAL.CLIENT_SECRET
   if (!clientId || !clientSecret) {
     throw new Error('Faltan credenciales de PayPal')
   }

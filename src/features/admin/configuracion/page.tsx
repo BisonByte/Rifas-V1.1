@@ -131,6 +131,15 @@ export default function ConfiguracionPage() {
     ] },
   ]
 
+  const configuracionesIntegraciones = [
+    { clave: 'PAYPAL_CLIENT_ID', nombre: 'PayPal Client ID', tipo: 'text' },
+    { clave: 'PAYPAL_CLIENT_SECRET', nombre: 'PayPal Client Secret', tipo: 'password' },
+    { clave: 'SMTP_HOST', nombre: 'SMTP Host', tipo: 'text' },
+    { clave: 'SMTP_PORT', nombre: 'SMTP Port', tipo: 'number' },
+    { clave: 'SMTP_USER', nombre: 'SMTP User', tipo: 'text' },
+    { clave: 'SMTP_PASSWORD', nombre: 'SMTP Password', tipo: 'password' },
+  ]
+
   const renderConfigSection = (titulo: string, configs: any[]) => (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4">
@@ -251,9 +260,10 @@ export default function ConfiguracionPage() {
 
   {/* Secciones de configuración */}
         {renderConfigSection('🎨 Configuración General', configuracionesGenerales)}
-  {renderConfigSection('💵 Moneda y precios', configuracionesMoneda)}
-  {renderConfigSection('📞 Información de Contacto', configuracionesContacto)}
-  {renderConfigSection('❓ Botón de Ayuda (contenido)', configuracionesAyuda)}
+        {renderConfigSection('💵 Moneda y precios', configuracionesMoneda)}
+        {renderConfigSection('🔑 Integraciones y credenciales', configuracionesIntegraciones)}
+        {renderConfigSection('📞 Información de Contacto', configuracionesContacto)}
+        {renderConfigSection('❓ Botón de Ayuda (contenido)', configuracionesAyuda)}
         {renderConfigSection('📋 Términos y Políticas', configuracionesTerminos)}
 
         {/* Panel de consejos */}

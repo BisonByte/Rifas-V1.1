@@ -1,3 +1,20 @@
+let DB_CONFIG: Record<string, string> = {}
+
+if (typeof window === 'undefined') {
+  try {
+    const { prisma } = await import('@/lib/prisma')
+    const dbConfigEntries = await prisma.configuracionSitio.findMany()
+    DB_CONFIG = dbConfigEntries.reduce((acc, item) => {
+      acc[item.clave] = item.valor
+      return acc
+    }, {} as Record<string, string>)
+  } catch {
+    DB_CONFIG = {}
+  }
+}
+
+const getConfigValue = (key: string) => DB_CONFIG[key] ?? process.env[key]
+
 // Configuración centralizada del sistema de rifas
 export const CONFIG = {
   // Configuración de tickets
@@ -109,13 +126,19 @@ export const CONFIG = {
 
   // Configuración de email
   EMAIL: {
-    SMTP_ENABLED: !!process.env.SMTP_HOST,
-    HOST: process.env.SMTP_HOST,
-    PORT: process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT) : 587,
-    USER: process.env.SMTP_USER,
-    PASSWORD: process.env.SMTP_PASSWORD,
-    FROM_ADDRESS: process.env.FROM_EMAIL || 'noreply@rifas.com',
+    SMTP_ENABLED: !!getConfigValue('SMTP_HOST'),
+    HOST: getConfigValue('SMTP_HOST'),
+    PORT: getConfigValue('SMTP_PORT') ? parseInt(getConfigValue('SMTP_PORT') as string) : 587,
+    USER: getConfigValue('SMTP_USER'),
+    PASSWORD: getConfigValue('SMTP_PASSWORD'),
+    FROM_ADDRESS: getConfigValue('FROM_EMAIL') || 'noreply@rifas.com',
     TEMPLATES_PATH: '/templates/email',
+  },
+
+  PAYPAL: {
+    CLIENT_ID: getConfigValue('PAYPAL_CLIENT_ID'),
+    CLIENT_SECRET: getConfigValue('PAYPAL_CLIENT_SECRET'),
+    ENV: getConfigValue('PAYPAL_ENV') || 'sandbox',
   },
 
   // Configuración de SMS
