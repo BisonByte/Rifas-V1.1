@@ -1,23 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '@/lib/auth'
+import { GET as publicGet } from '../../metodos-pago/route'
 import { prisma } from '@/lib/prisma'
 
 export async function GET() {
-  try {
-    const metodos = await prisma.metodoPago.findMany({
-      where: { activo: true },
-      orderBy: { orden: 'asc' }
-    })
-
-    return NextResponse.json({ success: true, data: metodos })
-
-  } catch (error) {
-    console.error('Error obteniendo métodos de pago:', error)
+  const user = await getAuthUser()
+  if (!user || (user.rol !== 'ADMIN' && user.rol !== 'SUPER_ADMIN')) {
     return NextResponse.json(
-      { success: false, error: 'Error obteniendo métodos de pago' },
-      { status: 500 }
+      { success: false, error: 'No autorizado' },
+      { status: 403 }
     )
   }
+
+  return publicGet()
 }
 
 export async function POST(request: NextRequest) {

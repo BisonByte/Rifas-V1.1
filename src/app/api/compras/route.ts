@@ -80,10 +80,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verificar método de pago (usar admin API temporalmente)
-    const metodoResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/admin/metodos-pago`)
-    const metodoData = await metodoResponse.json()
-    const metodoPago = metodoData.data?.find((m: any) => m.id === validatedData.metodoPago.id && m.activo)
+    // Verificar método de pago
+    const metodoResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/metodos-pago`)
+    const metodoJson = await metodoResponse.json()
+    const metodos = metodoJson?.success ? metodoJson.data : metodoJson
+    const metodoPago = metodos.find((m: any) => m.id === validatedData.metodoPago.id && m.activo)
 
     if (!metodoPago) {
       return NextResponse.json(

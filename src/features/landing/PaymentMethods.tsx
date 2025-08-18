@@ -16,9 +16,12 @@ export function PaymentMethods() {
   const [selectedMethod, setSelectedMethod] = useState<string>('')
 
   useEffect(() => {
-    fetch('/api/admin/metodos-pago')
+    fetch('/api/metodos-pago')
       .then(res => res.json())
-      .then(data => setMetodos(data.filter((m: MetodoPago) => m.activo)))
+      .then(json => {
+        const data = json?.success ? json.data : json
+        setMetodos(data.filter((m: MetodoPago) => m.activo))
+      })
       .catch(console.error)
   }, [])
 

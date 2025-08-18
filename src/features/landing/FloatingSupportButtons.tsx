@@ -67,7 +67,7 @@ export function FloatingSupportButtons() {
   const [config, setConfig] = useState<SiteConfig>({})
 
   useEffect(() => {
-    fetch('/api/admin/configuracion')
+    fetch('/api/configuracion')
       .then(async (res) => res.json())
       .then((json) => {
         // Tolerar ambas formas: {success, data} o lista/objeto directo
