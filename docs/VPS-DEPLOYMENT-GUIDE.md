@@ -8,6 +8,7 @@ Esta guía te llevará paso a paso para desplegar el Sistema de Rifas en un VPS 
 2. [Preparación del VPS](#preparación-del-vps)
 3. [Configuración de Base de Datos](#configuración-de-base-de-datos)
 4. [Despliegue de la Aplicación](#despliegue-de-la-aplicación)
+   - [Migración de Datos desde Desarrollo](#migración-de-datos-desde-desarrollo)
 5. [Configuración de Nginx](#configuración-de-nginx)
 6. [SSL con Let's Encrypt](#ssl-con-lets-encrypt)
 7. [Monitoreo y Mantenimiento](#monitoreo-y-mantenimiento)
@@ -164,6 +165,59 @@ npx prisma db push
 # Inicializar datos de producción
 npm run db:init
 ```
+
+### 3.1. 🔄 Migración de Datos desde Desarrollo
+
+Si has estado desarrollando localmente con **SQLite** y necesitas migrar los datos a **PostgreSQL** en producción, sigue estos pasos:
+
+#### Entornos de Base de Datos
+
+- **🛠️ Desarrollo Local**: SQLite (`file:./dev.db`) 
+- **🚀 Producción VPS**: PostgreSQL
+
+#### Cuándo ejecutar `npm run db:migrate-data`
+
+**Escenario 1**: Migración inicial de SQLite a PostgreSQL
+```bash
+# En tu entorno de desarrollo local:
+# 1. Asegurar que DATABASE_URL apunta a SQLite
+DATABASE_URL="file:./dev.db" npm run db:push
+
+# 2. En producción, después de configurar PostgreSQL:
+# Edita .env.production con la URL de PostgreSQL
+DATABASE_URL="postgresql://rifas_user:rifas_password_2024@localhost:5432/sistema_rifas?schema=public"
+
+# 3. Ejecutar migración de datos
+npm run db:migrate-data
+```
+
+**Escenario 2**: Restauración desde backup
+```bash
+# Si tienes datos de desarrollo que quieres en producción
+npm run db:migrate-data
+```
+
+#### Configuración correcta de DATABASE_URL
+
+**Para PostgreSQL local en VPS**:
+```bash
+DATABASE_URL="postgresql://rifas_user:rifas_password_2024@localhost:5432/sistema_rifas?schema=public"
+```
+
+**Para PostgreSQL con Docker**:
+```bash
+DATABASE_URL="postgresql://rifas_user:rifas_password_2024@localhost:5433/sistema_rifas?schema=public"
+```
+
+**Para PostgreSQL con servicio en la nube**:
+```bash
+DATABASE_URL="postgresql://user:password@db-host.com:5432/sistema_rifas?sslmode=require"
+```
+
+> ⚠️ **Importante**: 
+> - Siempre haz backup antes de migrar datos
+> - Verifica la conectividad con `npm run db:test-connection`
+> - El comando `db:migrate-data` transfiere datos completos, no estructuras
 
 ### 4. Construir la Aplicación
 
