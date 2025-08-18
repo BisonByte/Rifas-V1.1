@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/badge'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import { 
   Search,
   Filter,
@@ -32,56 +34,28 @@ interface Participante {
 }
 
 export default function ParticipantesPage() {
-  const [participantes, setParticipantes] = useState<Participante[]>([
-    {
-      id: '1',
-      nombre: 'Yanibel Pérez',
-      cedula: '12345678',
-      telefono: '+58 424-123-4567',
-      email: 'yanibel@email.com',
-      fechaRegistro: '2025-01-15T10:30:00Z',
-      totalTickets: 10,
-      eventosParticipados: ['EVENTO AZUL ES HOY', 'EVENTO GRATIS'],
-      ultimaActividad: '2025-08-16T09:30:00Z',
-      estado: 'ACTIVO'
-    },
-    {
-      id: '2',
-      nombre: 'Kike Rodriguez',
-      cedula: '87654321',
-      telefono: '+58 414-987-6543',
-      email: 'kike@email.com',
-      fechaRegistro: '2025-02-20T14:15:00Z',
-      totalTickets: 5,
-      eventosParticipados: ['EVENTO GRATIS'],
-      ultimaActividad: '2025-08-15T16:45:00Z',
-      estado: 'ACTIVO'
-    },
-    {
-      id: '3',
-      nombre: 'Xavier Morales',
-      cedula: '11223344',
-      telefono: '+58 412-555-0123',
-      email: 'xavier@email.com',
-      fechaRegistro: '2025-03-10T11:20:00Z',
-      totalTickets: 5,
-      eventosParticipados: ['EVENTO AZUL ES HOY'],
-      ultimaActividad: '2025-08-14T12:30:00Z',
-      estado: 'ACTIVO'
-    },
-    {
-      id: '4',
-      nombre: 'Derek Williams',
-      cedula: '55667788',
-      telefono: '+58 426-789-0123',
-      email: 'derek@email.com',
-      fechaRegistro: '2025-04-05T09:45:00Z',
-      totalTickets: 5,
-      eventosParticipados: ['EVENTO GRATIS'],
-      ultimaActividad: '2025-08-13T18:20:00Z',
-      estado: 'ACTIVO'
+  const [participantes, setParticipantes] = useState<Participante[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchParticipantes = async () => {
+      try {
+        const res = await fetch('/api/admin/participantes', { cache: 'no-store' })
+        if (!res.ok) {
+          throw new Error('Error al cargar participantes')
+        }
+        const data = await res.json()
+        setParticipantes(data.data || [])
+      } catch (err: any) {
+        setError(err.message || 'Error desconocido')
+      } finally {
+        setLoading(false)
+      }
     }
-  ])
+
+    fetchParticipantes()
+  }, [])
   
   const [filtroEstado, setFiltroEstado] = useState<string>('TODOS')
   const [searchTerm, setSearchTerm] = useState('')
@@ -125,6 +99,25 @@ export default function ParticipantesPage() {
     ACTIVO: participantes.filter(p => p.estado === 'ACTIVO').length,
     INACTIVO: participantes.filter(p => p.estado === 'INACTIVO').length,
     BLOQUEADO: participantes.filter(p => p.estado === 'BLOQUEADO').length
+  }
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <LoadingSpinner />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <Alert variant="destructive">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      </div>
+    )
   }
 
   const totalPages = Math.ceil(participantesFiltrados.length / itemsPerPage)

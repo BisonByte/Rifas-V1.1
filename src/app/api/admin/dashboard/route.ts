@@ -4,7 +4,6 @@ import { NextRequest, NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic'
 
 import { prisma } from '@/lib/prisma'
-import { MOCK_MODE, MOCK_STATS } from '@/lib/mock-data'
 import { requireAuth, isAdmin } from '@/lib/auth'
 
 // GET: Dashboard principal con estadísticas
@@ -16,14 +15,6 @@ export async function GET(request: NextRequest) {
         { success: false, error: 'Acceso denegado' },
         { status: 403 }
       )
-    }
-    
-    // Si estamos en modo demo/mock, devolver datos ficticios
-    if (MOCK_MODE) {
-      return NextResponse.json({
-        success: true,
-        data: MOCK_STATS
-      })
     }
     
     const ahora = new Date()
