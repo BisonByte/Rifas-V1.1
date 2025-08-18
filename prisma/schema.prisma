@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = env("DATABASE_PROVIDER") // Define el proveedor (sqlite, postgresql, etc.) mediante la variable de entorno
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -114,6 +114,7 @@ model Compra {
   metodoPago      String       @default("TRANSFERENCIA")
   estadoPago      String       @default("PENDIENTE")
   voucherUrl      String?
+  imagenComprobante String?    // URL de la imagen del comprobante
   bancoId         String?
   referencia      String?
   fechaVencimiento DateTime?
@@ -229,4 +230,51 @@ model RefreshToken {
   user Usuario @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("refresh_tokens")
+}
+
+model ConfiguracionSitio {
+  id    String @id @default(cuid())
+  clave String @unique
+  valor String // JSON como string para SQLite
+  tipo  String // 'text', 'number', 'boolean', 'json', 'image'
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("configuracion_sitio")
+}
+
+model MetodoPago {
+  id          String  @id @default(cuid())
+  nombre      String  @unique
+  tipo        String  // 'banco', 'pago_movil', 'efectivo', etc.
+  descripcion String?
+  imagen      String?
+  activo      Boolean @default(true)
+  orden       Int     @default(0)
+  
+  // Campos específicos para bancos
+  numeroCuenta String?
+  tipoCuenta   String?
+  cedula       String?
+  telefono     String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("metodos_pago")
+}
+
+model RedSocial {
+  id        String  @id @default(cuid())
+  nombre    String  @unique
+  url       String
+  icono     String?
+  activo    Boolean @default(true)
+  orden     Int     @default(0)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("redes_sociales")
 }

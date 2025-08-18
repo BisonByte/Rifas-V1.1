@@ -39,6 +39,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" className="h-full">
+      <head>
+        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/icon.svg" />
+        <meta name="theme-color" content="#3b82f6" />
+      </head>
       <body className={cn(inter.className, "min-h-full bg-background text-foreground")}>
         <div className="flex min-h-screen flex-col">
           {children}

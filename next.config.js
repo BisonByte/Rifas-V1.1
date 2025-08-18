@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Use a non-dotted dist directory to avoid OneDrive file locking issues on Windows
+  distDir: 'next',
   images: {
     domains: ['localhost'],
     remotePatterns: [

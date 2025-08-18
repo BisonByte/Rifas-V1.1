@@ -7,6 +7,15 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "maint:fix-admin-role": "tsx scripts/maintenance/fix-admin-role.ts",
+    "maint:fix-admin-complete": "tsx scripts/maintenance/fix-admin-complete.ts",
+    "maint:check-users": "tsx scripts/maintenance/check-users.ts",
+    "seed:config": "tsx scripts/seed/seed-configuracion.ts",
+    "seed:add-test-data": "tsx scripts/seed/add-test-data.ts",
+    "seed:add-simple-test-data": "tsx scripts/seed/add-simple-test-data.ts",
+    "seed:add-payment-methods": "tsx scripts/seed/add-payment-methods.ts",
+    "seed:add-config-data": "tsx scripts/seed/add-config-data.ts",
+    "seed:add-second-rifa": "tsx scripts/seed/add-second-rifa.ts",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "db:generate": "prisma generate",
@@ -40,7 +49,8 @@
     "crypto-js": "^4.2.0",
     "date-fns": "^4.1.0",
     "dotenv": "^16.4.5",
-    "jose": "^6.0.12",
+  "jose": "^6.0.12",
+  "imagetracerjs": "^1.2.6",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.446.0",
     "next": "^14.2.13",
@@ -64,6 +74,7 @@
     "eslint": "^8",
     "eslint-config-next": "14.2.13",
     "postcss": "^8",
-    "tailwindcss": "^3.4.1"
+    "tailwindcss": "^3.4.1",
+    "tsx": "^4.20.4"
   }
 }

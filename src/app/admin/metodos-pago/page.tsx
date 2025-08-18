@@ -1,269 +1,479 @@
 'use client'
 
-import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
+import { useState, useEffect } from 'react'
+import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { Badge } from '@/components/ui/badge'
-import { 
-  Plus,
-  CreditCard,
-  Smartphone,
-  Building2,
-  Edit,
-  Trash2,
-  ToggleLeft,
-  ToggleRight
-} from 'lucide-react'
+import { Input } from '@/components/ui/Input'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
 interface MetodoPago {
   id: string
   nombre: string
-  tipo: 'TRANSFERENCIA' | 'PAGO_MOVIL' | 'EFECTIVO' | 'CRIPTOMONEDA'
-  descripcion: string
-  datos: {
-    banco?: string
-    numeroCuenta?: string
-    cedula?: string
-    telefono?: string
-    direccionWallet?: string
-  }
+  tipo: 'BANCO' | 'PAGO_MOVIL' | 'BILLETERA' | 'CRIPTOMONEDA' | 'OTRO'
+  icono: string
   activo: boolean
-  fechaCreacion: string
+  datos: string
 }
 
 export default function MetodosPagoPage() {
-  const [metodosPago, setMetodosPago] = useState<MetodoPago[]>([
-    {
-      id: '1',
-      nombre: 'Banesco - Transferencia',
-      tipo: 'TRANSFERENCIA',
-      descripcion: 'Cuenta corriente principal',
-      datos: {
-        banco: 'Banesco',
-        numeroCuenta: '0134-0123-45-1234567890',
-        cedula: 'V-12345678'
-      },
+  const [metodos, setMetodos] = useState<MetodoPago[]>([])
+  const [loading, setLoading] = useState(true)
+  const [editingMethod, setEditingMethod] = useState<Partial<MetodoPago> | null>(null)
+  const [isCreating, setIsCreating] = useState(false)
+
+  useEffect(() => {
+    cargarMetodos()
+  }, [])
+
+  const cargarMetodos = async () => {
+    try {
+      const response = await fetch('/api/admin/metodos-pago')
+      const data = await response.json()
+      setMetodos(data)
+    } catch (error) {
+      console.error('Error cargando métodos de pago:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const crearMetodo = () => {
+    setEditingMethod({
+      nombre: '',
+      tipo: 'BANCO',
+      icono: '🏦',
       activo: true,
-      fechaCreacion: '2025-01-15T10:30:00Z'
-    },
-    {
-      id: '2',
-      nombre: 'Pago Móvil',
-      tipo: 'PAGO_MOVIL',
-      descripcion: 'Pago móvil interbancario',
-      datos: {
-        banco: 'Banesco',
-        telefono: '0424-123-4567',
-        cedula: 'V-12345678'
-      },
-      activo: true,
-      fechaCreacion: '2025-01-15T10:35:00Z'
-    },
-    {
-      id: '3',
-      nombre: 'USDT TRC-20',
-      tipo: 'CRIPTOMONEDA',
-      descripción: 'Wallet de Tether en red Tron',
-      datos: {
-        direccionWallet: 'TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE'
-      },
-      activo: false,
-      fechaCreacion: '2025-02-01T14:20:00Z'
-    }
-  ])
+      datos: '{}'
+    })
+    setIsCreating(true)
+  }
 
-  const getIconoTipo = (tipo: string) => {
+  const editarMetodo = (metodo: MetodoPago) => {
+    setEditingMethod(metodo)
+    setIsCreating(false)
+  }
+
+  const guardarMetodo = async () => {
+    if (!editingMethod) return
+
+    try {
+      const method = isCreating ? 'POST' : 'PUT'
+      const url = '/api/admin/metodos-pago'
+      
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editingMethod)
+      })
+
+      if (response.ok) {
+        alert(isCreating ? 'Método creado exitosamente' : 'Método actualizado exitosamente')
+        setEditingMethod(null)
+        cargarMetodos()
+      }
+    } catch (error) {
+      console.error('Error guardando método:', error)
+      alert('Error guardando método')
+    }
+  }
+
+  const toggleActivo = async (id: string, activo: boolean) => {
+    try {
+      await fetch('/api/admin/metodos-pago', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, activo })
+      })
+      cargarMetodos()
+    } catch (error) {
+      console.error('Error actualizando estado:', error)
+    }
+  }
+
+  const eliminarMetodo = async (id: string) => {
+    if (!confirm('¿Estás seguro de eliminar este método de pago?')) return
+
+    try {
+      await fetch(`/api/admin/metodos-pago?id=${id}`, {
+        method: 'DELETE'
+      })
+      alert('Método eliminado exitosamente')
+      cargarMetodos()
+    } catch (error) {
+      console.error('Error eliminando método:', error)
+      alert('Error eliminando método')
+    }
+  }
+
+  const renderFormularioDatos = (tipo: string, datos: string, onChange: (datos: string) => void) => {
+    let datosObj: any = {}
+    try {
+      datosObj = JSON.parse(datos)
+    } catch {}
+
+    const updateDatos = (key: string, value: string) => {
+      const newDatos = { ...datosObj, [key]: value }
+      onChange(JSON.stringify(newDatos))
+    }
+
+    const inputClass = "w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 font-medium text-gray-700 placeholder-gray-400"
+
     switch (tipo) {
-      case 'TRANSFERENCIA':
-        return <Building2 className="h-6 w-6 text-blue-500" />
+      case 'BANCO':
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">Banco</label>
+              <Input
+                placeholder="Ej: Banesco, Mercantil, Venezuela"
+                value={datosObj.banco || ''}
+                onChange={(e) => updateDatos('banco', e.target.value)}
+                className={inputClass}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">Número de Cuenta</label>
+              <Input
+                placeholder="0134-0123-45-1234567890"
+                value={datosObj.numeroCuenta || ''}
+                onChange={(e) => updateDatos('numeroCuenta', e.target.value)}
+                className={inputClass}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">Titular</label>
+              <Input
+                placeholder="Nombre del titular"
+                value={datosObj.titular || ''}
+                onChange={(e) => updateDatos('titular', e.target.value)}
+                className={inputClass}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">Tipo de Cuenta</label>
+              <select
+                value={datosObj.tipoCuenta || 'CORRIENTE'}
+                onChange={(e) => updateDatos('tipoCuenta', e.target.value)}
+                className={inputClass}
+              >
+                <option value="CORRIENTE">💼 Corriente</option>
+                <option value="AHORRO">💰 Ahorro</option>
+              </select>
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">Cédula del Titular</label>
+              <Input
+                placeholder="V-12345678"
+                value={datosObj.cedulaTitular || ''}
+                onChange={(e) => updateDatos('cedulaTitular', e.target.value)}
+                className={inputClass}
+              />
+            </div>
+          </div>
+        )
+
       case 'PAGO_MOVIL':
-        return <Smartphone className="h-6 w-6 text-green-500" />
-      case 'EFECTIVO':
-        return <CreditCard className="h-6 w-6 text-yellow-500" />
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">Banco</label>
+              <Input
+                placeholder="Ej: 0102 - Banco de Venezuela"
+                value={datosObj.banco || ''}
+                onChange={(e) => updateDatos('banco', e.target.value)}
+                className={inputClass}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">Teléfono</label>
+              <Input
+                placeholder="0412-1234567"
+                value={datosObj.telefono || ''}
+                onChange={(e) => updateDatos('telefono', e.target.value)}
+                className={inputClass}
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">Cédula</label>
+              <Input
+                placeholder="V-12345678"
+                value={datosObj.cedula || ''}
+                onChange={(e) => updateDatos('cedula', e.target.value)}
+                className={inputClass}
+              />
+            </div>
+          </div>
+        )
+
+      case 'BILLETERA':
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">Usuario/Email</label>
+              <Input
+                placeholder="usuario@paypal.com"
+                value={datosObj.usuario || ''}
+                onChange={(e) => updateDatos('usuario', e.target.value)}
+                className={inputClass}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">Teléfono</label>
+              <Input
+                placeholder="0412-1234567"
+                value={datosObj.telefono || ''}
+                onChange={(e) => updateDatos('telefono', e.target.value)}
+                className={inputClass}
+              />
+            </div>
+          </div>
+        )
+
       case 'CRIPTOMONEDA':
-        return <CreditCard className="h-6 w-6 text-purple-500" />
+        return (
+          <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">Moneda</label>
+                <Input
+                  placeholder="BTC, ETH, USDT, BNB, etc."
+                  value={datosObj.moneda || ''}
+                  onChange={(e) => updateDatos('moneda', e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">Red</label>
+                <Input
+                  placeholder="ERC20, TRC20, BEP20, etc."
+                  value={datosObj.red || ''}
+                  onChange={(e) => updateDatos('red', e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">Dirección de Wallet</label>
+              <Input
+                placeholder="0x1A2B3C4D5E6F7A8B9C0D1E2F3A4B5C6D7E8F9A0B"
+                value={datosObj.direccion || ''}
+                onChange={(e) => updateDatos('direccion', e.target.value)}
+                className={inputClass}
+              />
+            </div>
+          </div>
+        )
+
       default:
-        return <CreditCard className="h-6 w-6 text-gray-500" />
+        return (
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">Información del Método (JSON)</label>
+            <textarea
+              placeholder='{"descripcion": "Información del método de pago"}'
+              value={datos}
+              onChange={(e) => onChange(e.target.value)}
+              className={inputClass + " min-h-[120px]"}
+              rows={6}
+            />
+          </div>
+        )
     }
   }
 
-  const toggleActivo = (id: string) => {
-    setMetodosPago(metodosPago.map(metodo => 
-      metodo.id === id ? { ...metodo, activo: !metodo.activo } : metodo
-    ))
-  }
-
-  const formatearDatos = (metodo: MetodoPago) => {
-    const { datos, tipo } = metodo
-    
-    switch (tipo) {
-      case 'TRANSFERENCIA':
-        return (
-          <div className="space-y-1 text-sm">
-            <p><span className="text-gray-400">Banco:</span> <span className="text-white">{datos.banco}</span></p>
-            <p><span className="text-gray-400">Cuenta:</span> <span className="text-white font-mono">{datos.numeroCuenta}</span></p>
-            <p><span className="text-gray-400">Cédula:</span> <span className="text-white">{datos.cedula}</span></p>
-          </div>
-        )
-      case 'PAGO_MOVIL':
-        return (
-          <div className="space-y-1 text-sm">
-            <p><span className="text-gray-400">Banco:</span> <span className="text-white">{datos.banco}</span></p>
-            <p><span className="text-gray-400">Teléfono:</span> <span className="text-white">{datos.telefono}</span></p>
-            <p><span className="text-gray-400">Cédula:</span> <span className="text-white">{datos.cedula}</span></p>
-          </div>
-        )
-      case 'CRIPTOMONEDA':
-        return (
-          <div className="space-y-1 text-sm">
-            <p><span className="text-gray-400">Dirección:</span></p>
-            <p className="text-white font-mono text-xs break-all">{datos.direccionWallet}</p>
-          </div>
-        )
-      default:
-        return <p className="text-gray-400 text-sm">Sin datos específicos</p>
-    }
-  }
+  if (loading) return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
+      <div className="text-center">
+        <LoadingSpinner />
+        <p className="text-gray-600 font-medium mt-4">Cargando métodos de pago...</p>
+      </div>
+    </div>
+  )
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Métodos de Pago</h1>
-          <p className="text-gray-400 mt-1">Configura los métodos de pago disponibles</p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white p-6">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header */}
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">💳 Métodos de Pago</h1>
+              <p className="text-gray-600 font-medium">Gestiona los métodos de pago disponibles para tus usuarios</p>
+            </div>
+            <Button 
+              onClick={crearMetodo} 
+              className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200"
+            >
+              <span className="flex items-center">
+                ➕ Agregar Método
+              </span>
+            </Button>
+          </div>
         </div>
-        <Button className="bg-teal-600 hover:bg-teal-700 text-white">
-          <Plus className="h-4 w-4 mr-2" />
-          Nuevo Método
-        </Button>
-      </div>
 
-      {/* Estadísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-gray-800 border-gray-700">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold text-white">{metodosPago.length}</p>
-                <p className="text-sm text-gray-400">Total Métodos</p>
-              </div>
-              <CreditCard className="h-8 w-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gray-800 border-gray-700">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold text-green-500">{metodosPago.filter(m => m.activo).length}</p>
-                <p className="text-sm text-gray-400">Activos</p>
-              </div>
-              <ToggleRight className="h-8 w-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gray-800 border-gray-700">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold text-gray-400">{metodosPago.filter(m => !m.activo).length}</p>
-                <p className="text-sm text-gray-400">Inactivos</p>
-              </div>
-              <ToggleLeft className="h-8 w-8 text-gray-400" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gray-800 border-gray-700">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold text-blue-500">{metodosPago.filter(m => m.tipo === 'TRANSFERENCIA').length}</p>
-                <p className="text-sm text-gray-400">Transferencias</p>
-              </div>
-              <Building2 className="h-8 w-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Lista de métodos de pago */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {metodosPago.map((metodo) => (
-          <Card key={metodo.id} className="bg-gray-800 border-gray-700">
-            <CardHeader className="border-b border-gray-700">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center space-x-3">
-                  {getIconoTipo(metodo.tipo)}
-                  <div>
-                    <CardTitle className="text-white text-lg">{metodo.nombre}</CardTitle>
-                    <p className="text-gray-400 text-sm">{metodo.descripcion}</p>
+        {/* Grid de métodos */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {metodos.map((metodo) => (
+            <div key={metodo.id} className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+              <div className={`p-4 ${metodo.activo ? 'bg-gradient-to-r from-green-500 to-green-600' : 'bg-gradient-to-r from-gray-400 to-gray-500'}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <span className="text-3xl bg-white bg-opacity-20 p-2 rounded-lg">{metodo.icono}</span>
+                    <div>
+                      <h3 className="font-bold text-white text-lg">{metodo.nombre}</h3>
+                      <p className="text-white text-sm opacity-90">{metodo.tipo.replace('_', ' ')}</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col space-y-1">
+                    <Button
+                      size="sm"
+                      variant={metodo.activo ? "default" : "outline"}
+                      onClick={() => toggleActivo(metodo.id, !metodo.activo)}
+                      className={`text-xs px-2 py-1 ${metodo.activo ? 'bg-white text-green-600 hover:bg-gray-100' : 'bg-white text-gray-600 hover:bg-gray-100'}`}
+                    >
+                      {metodo.activo ? '✅ Activo' : '⭕ Inactivo'}
+                    </Button>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Badge className={`${metodo.activo ? 'bg-green-500 text-white' : 'bg-gray-500 text-white'}`}>
-                    {metodo.activo ? 'Activo' : 'Inactivo'}
-                  </Badge>
-                  <Badge variant="outline" className="border-gray-600 text-gray-300">
-                    {metodo.tipo.replace('_', ' ')}
-                  </Badge>
+              </div>
+              
+              <div className="p-4">
+                <div className="flex justify-between items-center">
+                  <div className="text-sm text-gray-600">
+                    <p className="font-medium">Estado: <span className={metodo.activo ? 'text-green-600' : 'text-red-600'}>{metodo.activo ? 'Activo' : 'Inactivo'}</span></p>
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => editarMetodo(metodo)}
+                      className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                    >
+                      ✏️
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => eliminarMetodo(metodo.id)}
+                      className="text-red-600 border-red-200 hover:bg-red-50"
+                    >
+                      🗑️
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className="p-4 space-y-4">
-              {/* Datos del método */}
-              <div>
-                <h4 className="text-white font-medium mb-2">Información de Pago</h4>
-                {formatearDatos(metodo)}
-              </div>
-
-              {/* Acciones */}
-              <div className="flex items-center justify-between pt-2 border-t border-gray-700">
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700">
-                    <Edit className="h-4 w-4 mr-2" />
-                    Editar
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Eliminar
-                  </Button>
-                </div>
-                <Button
-                  size="sm"
-                  onClick={() => toggleActivo(metodo.id)}
-                  className={`${
-                    metodo.activo 
-                      ? 'bg-gray-600 hover:bg-gray-700 text-white' 
-                      : 'bg-green-600 hover:bg-green-700 text-white'
-                  }`}
-                >
-                  {metodo.activo ? <ToggleLeft className="h-4 w-4 mr-2" /> : <ToggleRight className="h-4 w-4 mr-2" />}
-                  {metodo.activo ? 'Desactivar' : 'Activar'}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+            </div>
+          ))}
+          
+          {metodos.length === 0 && (
+            <div className="col-span-full text-center py-12">
+              <div className="text-6xl mb-4">💳</div>
+              <h3 className="text-xl font-bold text-gray-700 mb-2">No hay métodos de pago</h3>
+              <p className="text-gray-500 mb-4">Agrega tu primer método de pago para comenzar</p>
+              <Button 
+                onClick={crearMetodo}
+                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+              >
+                ➕ Crear Primer Método
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Estado vacío */}
-      {metodosPago.length === 0 && (
-        <Card className="bg-gray-800 border-gray-700">
-          <CardContent className="p-12 text-center">
-            <CreditCard className="h-16 w-16 text-gray-600 mx-auto mb-4" />
-            <h3 className="text-xl font-medium text-white mb-2">No hay métodos de pago</h3>
-            <p className="text-gray-400 mb-6">Comienza agregando tu primer método de pago</p>
-            <Button className="bg-teal-600 hover:bg-teal-700 text-white">
-              <Plus className="h-4 w-4 mr-2" />
-              Agregar Método
-            </Button>
-          </CardContent>
-        </Card>
+      {editingMethod && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-screen overflow-y-auto">
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4 rounded-t-2xl">
+              <h2 className="text-2xl font-bold text-white flex items-center">
+                {isCreating ? '➕ Crear Método de Pago' : '✏️ Editar Método de Pago'}
+              </h2>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-bold text-gray-800 uppercase tracking-wide">
+                    Nombre del Método
+                  </label>
+                  <Input
+                    placeholder="Ej: Banesco - Transferencia"
+                    value={editingMethod.nombre || ''}
+                    onChange={(e) => setEditingMethod({...editingMethod, nombre: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 font-medium text-gray-700"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-bold text-gray-800 uppercase tracking-wide">
+                    Tipo de Método
+                  </label>
+                  <select
+                    value={editingMethod.tipo || 'BANCO'}
+                    onChange={(e) => setEditingMethod({...editingMethod, tipo: e.target.value as any})}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 font-medium text-gray-700"
+                  >
+                    <option value="BANCO">🏦 Transferencia Bancaria</option>
+                    <option value="PAGO_MOVIL">📱 Pago Móvil</option>
+                    <option value="BILLETERA">💰 Billetera Digital</option>
+                    <option value="CRIPTOMONEDA">₿ Criptomoneda</option>
+                    <option value="OTRO">🔧 Otro</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-bold text-gray-800 uppercase tracking-wide">
+                    Icono (Emoji)
+                  </label>
+                  <Input
+                    placeholder="🏦"
+                    value={editingMethod.icono || ''}
+                    onChange={(e) => setEditingMethod({...editingMethod, icono: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 font-medium text-gray-700 text-center text-2xl"
+                  />
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <label className="flex items-center space-x-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editingMethod.activo || false}
+                      onChange={(e) => setEditingMethod({...editingMethod, activo: e.target.checked})}
+                      className="w-5 h-5 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 focus:ring-2"
+                    />
+                    <span className="font-bold text-gray-800">Método Activo</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="border-t pt-6">
+                <label className="block text-sm font-bold text-gray-800 uppercase tracking-wide mb-4">
+                  📋 Información del Método
+                </label>
+                {renderFormularioDatos(
+                  editingMethod.tipo || 'BANCO',
+                  editingMethod.datos || '{}',
+                  (datos) => setEditingMethod({...editingMethod, datos})
+                )}
+              </div>
+            </div>
+
+            <div className="flex space-x-3 p-6 bg-gray-50 rounded-b-2xl">
+              <Button 
+                onClick={guardarMetodo} 
+                className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200"
+              >
+                💾 Guardar
+              </Button>
+              <Button 
+                onClick={() => setEditingMethod(null)}
+                variant="outline"
+                className="flex-1 border-2 border-gray-300 hover:bg-gray-100 font-bold py-3 px-6 rounded-lg transition-all duration-200"
+              >
+                ❌ Cancelar
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

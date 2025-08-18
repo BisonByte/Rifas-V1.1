@@ -53,6 +53,8 @@ export default function AdminLayoutClient({
     { icon: Users, label: 'Participantes', href: '/admin/participantes', gradient: 'from-indigo-500 to-blue-600' },
     { icon: Wallet, label: 'Métodos de Pago', href: '/admin/metodos-pago', gradient: 'from-purple-500 to-pink-600' },
     { icon: User, label: 'Usuarios', href: '/admin/usuarios', gradient: 'from-teal-500 to-cyan-600' },
+    { icon: Settings, label: 'Configuración', href: '/admin/configuracion', gradient: 'from-slate-500 to-gray-600' },
+    { icon: Bell, label: 'Redes Sociales', href: '/admin/redes-sociales', gradient: 'from-cyan-500 to-blue-600' },
   ]
 
   const isActive = (href: string) => {

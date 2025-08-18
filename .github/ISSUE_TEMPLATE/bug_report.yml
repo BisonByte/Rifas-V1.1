@@ -1,0 +1,52 @@
+name: Bug Report
+description: Reportar un bug o error en el sistema
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por tomarte el tiempo para llenar este reporte de bug!
+  - type: input
+    id: contact
+    attributes:
+      label: Información de Contacto
+      description: ¿Cómo podemos contactarte si necesitamos más información?
+      placeholder: ej. email@example.com
+    validations:
+      required: false
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: ¿Qué pasó?
+      description: Describe también lo que esperabas que pasara!
+      placeholder: Descripción del bug...
+    validations:
+      required: true
+  - type: dropdown
+    id: version
+    attributes:
+      label: Versión
+      description: ¿Qué versión del sistema estás usando?
+      options:
+        - 1.0.0
+        - main branch
+        - Otra (especificar en descripción)
+    validations:
+      required: true
+  - type: dropdown
+    id: browsers
+    attributes:
+      label: ¿En qué navegadores has visto este problema?
+      multiple: true
+      options:
+        - Firefox
+        - Chrome
+        - Safari
+        - Microsoft Edge
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs relevantes
+      description: Por favor copia y pega cualquier log relevante. Será formateado automáticamente como código.
+      render: shell

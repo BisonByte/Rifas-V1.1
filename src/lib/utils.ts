@@ -12,6 +12,45 @@ export function formatCurrency(amount: number, currency: string = 'USD'): string
   }).format(amount)
 }
 
+export type CurrencyFormatOptions = {
+  code?: string // ISO 4217 e.g., 'VES', 'USD'
+  symbol?: string // e.g., 'BsS', '$'
+  locale?: string // e.g., 'es-VE'
+  position?: 'prefix' | 'suffix' // Where to place symbol when custom
+  minimumFractionDigits?: number
+  maximumFractionDigits?: number
+}
+
+// Flexible formatter that can place a custom symbol (e.g., BsS) as suffix while still using Intl for number formatting
+export function formatCurrencyFlexible(amount: number, opts: CurrencyFormatOptions = {}): string {
+  const {
+    code = 'USD',
+    symbol,
+    locale = 'es-ES',
+    position = 'prefix',
+    minimumFractionDigits = 2,
+    maximumFractionDigits = 2,
+  } = opts
+
+  // If a custom symbol is provided, use number formatting without currency then add symbol
+  if (symbol) {
+    const formatted = new Intl.NumberFormat(locale, {
+      style: 'decimal',
+      minimumFractionDigits,
+      maximumFractionDigits,
+    }).format(amount)
+    return position === 'suffix' ? `${formatted} ${symbol}` : `${symbol} ${formatted}`
+  }
+
+  // Fallback to Intl currency formatting using the code
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: code,
+    minimumFractionDigits,
+    maximumFractionDigits,
+  }).format(amount)
+}
+
 export function formatDate(date: Date | string): string {
   const d = typeof date === 'string' ? new Date(date) : date
   return new Intl.DateTimeFormat('es-ES', {

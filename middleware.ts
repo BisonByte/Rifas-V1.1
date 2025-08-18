@@ -9,8 +9,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Permitir acceso a la página de login
-  if (pathname === '/admin/login') {
+  // Permitir acceso a páginas públicas del admin
+  if (pathname === '/admin/login' || pathname === '/admin/access-denied') {
     return NextResponse.next()
   }
 
