@@ -6,7 +6,7 @@ import { get } from '@/lib/api-client'
 interface ConfiguracionSitio {
   id: string
   clave: string
-  valor: string
+  valor: any
 }
 
 export function NewHero() {
@@ -25,11 +25,15 @@ export function NewHero() {
 
         if (Array.isArray(payload)) {
           payload.forEach((item: any) => {
-            configObj[item.clave] = item.valor
+            configObj[item.clave] =
+              typeof item.valor === 'object'
+                ? JSON.stringify(item.valor)
+                : String(item.valor)
           })
         } else if (payload && typeof payload === 'object') {
           Object.entries(payload).forEach(([k, v]) => {
-            configObj[k] = String(v)
+            configObj[k] =
+              typeof v === 'object' ? JSON.stringify(v) : String(v)
           })
         }
 

@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -236,7 +236,7 @@ model RefreshToken {
 model ConfiguracionSitio {
   id    String @id @default(cuid())
   clave String @unique
-  valor String // JSON como string para SQLite
+  valor Json
   tipo  String // 'text', 'number', 'boolean', 'json', 'image'
   
   createdAt DateTime @default(now())
