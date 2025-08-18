@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
-import { MOCK_MODE, MOCK_PAGOS_PENDIENTES } from '@/lib/mock-data'
 import { requireAuth, isAdmin } from '@/lib/auth'
 
 // Force dynamic rendering for API routes
@@ -23,19 +22,6 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Si estamos en modo demo/mock, devolver datos ficticios
-    if (MOCK_MODE) {
-      const searchParams = request.nextUrl.searchParams
-      const estado = searchParams.get('estado') || 'EN_VERIFICACION'
-      const limit = parseInt(searchParams.get('limit') || '10')
-      
-      return NextResponse.json({
-        success: true,
-        data: MOCK_PAGOS_PENDIENTES.slice(0, limit)
-      })
-    }
-    
-    // Código original para base de datos real...
     const searchParams = request.nextUrl.searchParams
     const estado = searchParams.get('estado') || 'EN_VERIFICACION'
     const page = parseInt(searchParams.get('page') || '1')
@@ -77,19 +63,6 @@ export async function POST(request: NextRequest) {
       { success: false, error: 'Acceso denegado' },
       { status: 403 }
     )
-  }
-
-  // Si estamos en modo demo/mock, simular respuesta exitosa
-  if (MOCK_MODE) {
-    const body = await request.json()
-    if (process.env.NODE_ENV !== 'production') {
-      console.debug('DEMO: Acción de pago simulada:', body)
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: `Pago ${body.accion === 'APROBAR' ? 'aprobado' : 'rechazado'} exitosamente (MODO DEMO)`
-    })
   }
 
   const transaction = await prisma.$transaction(async (tx: any) => {

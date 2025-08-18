@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/badge'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import { 
   Search,
   Filter,
@@ -35,42 +37,49 @@ interface Pago {
 }
 
 export default function PagosPage() {
-  const [pagos, setPagos] = useState<Pago[]>([
-    {
-      id: '1',
-      participante: {
-        nombre: 'Yanibel Pérez',
-        cedula: '12345678',
-        telefono: '+58 424-123-4567'
-      },
-      evento: {
-        nombre: 'EVENTO AZUL ES HOY'
-      },
-      monto: 250,
-      metodoPago: 'Transferencia',
-      referencia: 'REF123456789',
-      estado: 'PENDIENTE',
-      fechaCreacion: '2025-08-16T10:30:00Z',
-      tickets: [101, 102, 103, 104, 105]
-    },
-    {
-      id: '2',
-      participante: {
-        nombre: 'Kike Rodriguez',
-        cedula: '87654321',
-        telefono: '+58 414-987-6543'
-      },
-      evento: {
-        nombre: 'EVENTO GRATIS'
-      },
-      monto: 0,
-      metodoPago: 'Gratis',
-      referencia: 'GRATIS001',
-      estado: 'APROBADO',
-      fechaCreacion: '2025-08-16T09:15:00Z',
-      tickets: [201, 202, 203, 204, 205]
+  const [pagos, setPagos] = useState<Pago[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchPagos = async () => {
+      try {
+        const res = await fetch('/api/admin/verificar-pagos', { cache: 'no-store' })
+        if (!res.ok) {
+          throw new Error('Error al cargar pagos')
+        }
+        const json = await res.json()
+        const mapped = (json.data || []).map((p: any) => ({
+          id: p.id,
+          participante: {
+            nombre: p.participante?.nombre || '',
+            cedula: p.participante?.cedula || '',
+            telefono: p.participante?.celular || ''
+          },
+          evento: { nombre: p.rifa?.nombre || '' },
+          monto: p.monto,
+          metodoPago: p.metodoPago || '',
+          referencia: p.numeroReferencia || '',
+          estado:
+            p.estadoPago === 'CONFIRMADO'
+              ? 'APROBADO'
+              : p.estadoPago === 'RECHAZADO'
+              ? 'RECHAZADO'
+              : 'PENDIENTE',
+          fechaCreacion: p.fechaCreacion || p.createdAt,
+          tickets: p.numerosTickets || p.tickets || [],
+          comprobante: p.comprobante || undefined
+        }))
+        setPagos(mapped)
+      } catch (err: any) {
+        setError(err.message || 'Error desconocido')
+      } finally {
+        setLoading(false)
+      }
     }
-  ])
+
+    fetchPagos()
+  }, [])
   
   const [filtroEstado, setFiltroEstado] = useState<string>('TODOS')
   const [searchTerm, setSearchTerm] = useState('')
@@ -130,6 +139,25 @@ export default function PagosPage() {
     PENDIENTE: pagos.filter(p => p.estado === 'PENDIENTE').length,
     APROBADO: pagos.filter(p => p.estado === 'APROBADO').length,
     RECHAZADO: pagos.filter(p => p.estado === 'RECHAZADO').length
+  }
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <LoadingSpinner />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <Alert variant="destructive">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      </div>
+    )
   }
 
   return (

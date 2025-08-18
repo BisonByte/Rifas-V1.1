@@ -150,29 +150,6 @@ export async function getAuthUser(): Promise<AuthUser | null> {
  */
 export async function verifyCredentials(email: string, password: string): Promise<AuthUser | null> {
   try {
-    // Modo mock para desarrollo
-    if (process.env.NODE_ENV === 'development') {
-      const { MOCK_USUARIOS } = await import('./mock-data')
-      
-      const usuario = MOCK_USUARIOS.find(u => u.email === email && u.activo)
-      if (!usuario) {
-        return null
-      }
-
-      const isValid = await bcrypt.compare(password, usuario.password)
-      if (!isValid) {
-        return null
-      }
-
-        return {
-          id: usuario.id,
-          nombre: usuario.nombre,
-          email: usuario.email,
-          rol: usuario.rol
-        }
-    }
-
-    // Modo producción con base de datos real
     const usuario = await prisma.usuario.findUnique({
       where: { email },
       select: {

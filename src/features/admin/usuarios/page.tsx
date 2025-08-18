@@ -1,9 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/badge'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import { 
   Plus,
   Search,
@@ -30,38 +32,28 @@ interface Usuario {
 }
 
 export default function UsuariosPage() {
-  const [usuarios, setUsuarios] = useState<Usuario[]>([
-    {
-      id: '1',
-      nombre: 'Desarrollo Pruebas',
-      email: 'admin@sistema-rifas.com',
-      rol: 'ADMIN',
-      estado: 'ACTIVO',
-      fechaCreacion: '2025-01-01T00:00:00Z',
-      ultimoAcceso: '2025-08-16T09:30:00Z',
-      permisos: ['all']
-    },
-    {
-      id: '2',
-      nombre: 'Juan Moderador',
-      email: 'juan.mod@sistema-rifas.com',
-      rol: 'MODERADOR',
-      estado: 'ACTIVO',
-      fechaCreacion: '2025-02-15T10:30:00Z',
-      ultimoAcceso: '2025-08-15T16:45:00Z',
-      permisos: ['verify_payments', 'manage_events', 'view_reports']
-    },
-    {
-      id: '3',
-      nombre: 'Maria Operador',
-      email: 'maria.op@sistema-rifas.com',
-      rol: 'OPERADOR',
-      estado: 'INACTIVO',
-      fechaCreacion: '2025-03-10T14:20:00Z',
-      ultimoAcceso: '2025-08-10T12:15:00Z',
-      permisos: ['verify_payments', 'view_participants']
+  const [usuarios, setUsuarios] = useState<Usuario[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchUsuarios = async () => {
+      try {
+        const res = await fetch('/api/admin/usuarios', { cache: 'no-store' })
+        if (!res.ok) {
+          throw new Error('Error al cargar usuarios')
+        }
+        const data = await res.json()
+        setUsuarios(data.data || [])
+      } catch (err: any) {
+        setError(err.message || 'Error desconocido')
+      } finally {
+        setLoading(false)
+      }
     }
-  ])
+
+    fetchUsuarios()
+  }, [])
   
   const [filtroRol, setFiltroRol] = useState<string>('TODOS')
   const [searchTerm, setSearchTerm] = useState('')
@@ -122,6 +114,25 @@ export default function UsuariosPage() {
     ACTIVO: usuarios.filter(u => u.estado === 'ACTIVO').length,
     INACTIVO: usuarios.filter(u => u.estado === 'INACTIVO').length,
     SUSPENDIDO: usuarios.filter(u => u.estado === 'SUSPENDIDO').length
+  }
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <LoadingSpinner />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <Alert variant="destructive">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      </div>
+    )
   }
 
   return (
