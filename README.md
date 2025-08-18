@@ -136,6 +136,10 @@ sistema-rifas/
 - `npm run db:migrate` - Ejecuta migraciones
 - `npm run db:studio` - Abre Prisma Studio
 - `npm run db:push` - Sincroniza el esquema con la BD
+- `npm run db:switch-sqlite` - Cambia automáticamente a SQLite
+- `npm run db:switch-postgres` - Cambia automáticamente a PostgreSQL
+- `npm run db:status` - Muestra la configuración actual de BD
+- `npm run db:migrate-data` - Migra datos de SQLite a PostgreSQL
 
 ### Seeding
 - `npm run seed:config` - Configuración inicial
@@ -156,6 +160,80 @@ DATABASE_URL="file:./dev.db"
 ```bash
 DATABASE_URL="postgresql://usuario:password@localhost:5432/sistema_rifas"
 ```
+
+### 🗄️ Migración de Datos entre Entornos
+
+El sistema está diseñado para usar **dos entornos de base de datos diferentes**:
+
+- **🛠️ Desarrollo Local**: SQLite (`file:./dev.db`) - Ideal para desarrollo rápido
+- **🚀 Producción VPS**: PostgreSQL - Robusto para producción
+
+#### 🔄 Alternancia Automática entre Bases de Datos
+
+**Cambio rápido con un comando:**
+```bash
+# Cambiar a SQLite (desarrollo)
+npm run db:switch-sqlite
+
+# Cambiar a PostgreSQL (producción)
+npm run db:switch-postgres
+
+# Ver configuración actual
+npm run db:status
+```
+
+**Proceso completo de cambio:**
+```bash
+# 1. Cambiar configuración
+npm run db:switch-postgres
+
+# 2. Actualizar cliente Prisma
+npx prisma generate
+
+# 3. Crear estructura en la nueva BD
+npx prisma db push
+
+# 4. (Opcional) Migrar datos desde SQLite
+npm run db:migrate-data
+```
+
+#### Cuándo usar `npm run db:migrate-data`
+
+Este comando es útil en los siguientes escenarios:
+
+1. **Migrar de SQLite a PostgreSQL** (con alternancia automática):
+   ```bash
+   # Cambiar automáticamente a PostgreSQL
+   npm run db:switch-postgres
+   npx prisma generate
+   npx prisma db push
+   
+   # Migrar los datos
+   npm run db:migrate-data
+   ```
+
+2. **Cambio de servidor de base de datos** (mantener datos existentes)
+
+3. **Backup y restauración** entre diferentes instancias
+
+#### Configuración de DATABASE_URL para PostgreSQL
+
+**Desarrollo con PostgreSQL local**:
+```bash
+DATABASE_URL="postgresql://postgres:password@localhost:5432/sistema_rifas_dev"
+```
+
+**Producción VPS**:
+```bash
+DATABASE_URL="postgresql://rifas_user:secure_password@localhost:5432/sistema_rifas"
+```
+
+**Producción con servicio externo**:
+```bash
+DATABASE_URL="postgresql://user:password@db-server.com:5432/sistema_rifas?sslmode=require"
+```
+
+> ⚠️ **Importante**: Siempre haz un backup antes de ejecutar `npm run db:migrate-data`
 
 ### Autenticación
 Configura las claves JWT en `.env.local`:
