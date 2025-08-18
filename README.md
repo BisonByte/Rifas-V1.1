@@ -48,7 +48,7 @@ Un sistema completo de rifas desarrollado con **Next.js 14**, **Prisma** y **Typ
 
 ### 1. Clonar el Repositorio
 ```bash
-git clone https://github.com/tu-usuario/sistema-rifas.git
+git clone https://github.com/BisonByte/sistema-rifas.git
 cd sistema-rifas
 ```
 
