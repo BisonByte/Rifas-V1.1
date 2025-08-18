@@ -8,7 +8,15 @@ export async function GET() {
     })
 
     const config = configuraciones.reduce((acc, item) => {
-      acc[item.clave] = item.valor as any
+      try {
+        if (item.tipo === 'json') {
+          acc[item.clave] = JSON.parse(item.valor)
+        } else {
+          acc[item.clave] = item.valor
+        }
+      } catch {
+        acc[item.clave] = item.valor
+      }
       return acc
     }, {} as Record<string, any>)
 
