@@ -3,7 +3,8 @@ import { stdin as input, stdout as output } from 'process'
 import { spawn } from 'child_process'
 import bcrypt from 'bcryptjs'
 import { PrismaClient } from '@prisma/client'
-import { testDatabaseConnection, generateSecret, writeEnv } from '../src/lib/setup'
+import { testDatabaseConnection } from '../src/lib/setup'
+import { generateSecret, writeEnvAtomic } from '../src/lib/env'
 
 const rl = readline.createInterface({ input, output })
 
@@ -50,7 +51,7 @@ async function main() {
   if (smtpUser) envVars.SMTP_USER = smtpUser
   if (smtpPassword) envVars.SMTP_PASSWORD = smtpPassword
 
-  await writeEnv(envVars)
+  await writeEnvAtomic(envVars)
   console.log('Archivo .env creado.')
 
   await new Promise<void>((resolve, reject) => {
