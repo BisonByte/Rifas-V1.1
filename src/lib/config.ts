@@ -1,3 +1,17 @@
+import fs from 'fs'
+import { generateSecret } from '@/lib/env'
+
+if (typeof window === 'undefined' && process.env.FIRST_RUN === 'true' && !process.env.SETUP_TOKEN) {
+  const token = generateSecret()
+  process.env.SETUP_TOKEN = token
+  try {
+    fs.writeFileSync('.setup-token', token)
+  } catch {
+    // Ignore write errors, token is still available in memory
+  }
+  console.log(`Setup token: ${token}`)
+}
+
 let DB_CONFIG: Record<string, string> = {}
 
 if (typeof window === 'undefined') {
