@@ -2,10 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 import fs from 'fs'
-import { randomBytes } from 'crypto'
 import { spawn } from 'child_process'
-import { atomicWrite } from '@/lib/atomicWrite'
 import { sendEmail } from '@/lib/sendEmail'
+import { writeEnvAtomic, generateSecret } from '@/lib/env'
 
 const rateLimit = new Map<string, { count: number; time: number }>()
 
@@ -49,7 +48,7 @@ export async function POST(
   try {
     switch (params.action) {
       case 'generate-secret': {
-        const secret = randomBytes(32).toString('hex')
+        const secret = generateSecret()
         return NextResponse.json({ ok: true, secret })
       }
       case 'test-db': {
@@ -68,12 +67,7 @@ export async function POST(
       case 'apply': {
         const body = await req.json()
         const envVars: Record<string, string> = body.env || {}
-        let envContent = ''
-        for (const [key, value] of Object.entries(envVars)) {
-          envContent += `${key}=${String(value)}\n`
-        }
-        envContent += 'FIRST_RUN=false\n'
-        await atomicWrite('.env', envContent)
+        await writeEnvAtomic(envVars)
 
         await new Promise<void>((resolve, reject) => {
           const child = spawn('npx', ['prisma', 'migrate', 'deploy'], { stdio: 'inherit' })
