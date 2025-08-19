@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
@@ -21,18 +21,37 @@ const steps = ['Base de datos', 'Administrador', 'Secretos', 'Módulos opcionale
 export default function SetupPage() {
   const [step, setStep] = useState(0)
   const [state, setState] = useState<SetupState>({})
+  const [token, setToken] = useState('')
+  const [authorized, setAuthorized] = useState(false)
   const router = useRouter()
 
-  useEffect(() => {
-    fetch('/api/setup/state').then(res => res.json()).then(data => {
-      setState(data)
+  const authedFetch = (url: string, options: RequestInit = {}) => {
+    const headers = {
+      ...(options.headers || {}),
+      'x-setup-token': token,
+    }
+    return fetch(url, { ...options, headers })
+  }
+
+  const handleTokenSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
+    const t = formData.get('token')?.toString() || ''
+    const res = await fetch('/api/setup/verify', {
+      headers: { 'x-setup-token': t },
     })
-  }, [])
+    if (res.ok) {
+      setToken(t)
+      setAuthorized(true)
+    } else {
+      alert('Token inválido')
+    }
+  }
 
   const save = async (partial: Partial<SetupState>) => {
     const newState = { ...state, ...partial }
     setState(newState)
-    await fetch('/api/setup/save', {
+    await authedFetch('/api/setup/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(partial)
@@ -76,7 +95,7 @@ export default function SetupPage() {
   }
 
   const testConnection = async () => {
-    const res = await fetch('/api/setup/db-test', {
+    const res = await authedFetch('/api/setup/db-test', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(state.db)
@@ -86,10 +105,21 @@ export default function SetupPage() {
   }
 
   const apply = async () => {
-    const res = await fetch('/api/setup/apply', { method: 'POST' })
+    const res = await authedFetch('/api/setup/apply', { method: 'POST' })
     if (res.ok) {
       router.push('/')
     }
+  }
+
+  if (!authorized) {
+    return (
+      <div className='max-w-xl mx-auto p-6 space-y-6'>
+        <form onSubmit={handleTokenSubmit} className='space-y-4'>
+          <Input name='token' placeholder='Setup token' />
+          <Button type='submit'>Ingresar</Button>
+        </form>
+      </div>
+    )
   }
 
   return (

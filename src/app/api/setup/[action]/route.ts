@@ -51,6 +51,9 @@ export async function POST(
         const secret = generateSecret()
         return NextResponse.json({ ok: true, secret })
       }
+      case 'verify': {
+        return NextResponse.json({ ok: true })
+      }
       case 'test-db': {
         const { url } = await req.json()
         const client = new PrismaClient({ datasourceUrl: url })
