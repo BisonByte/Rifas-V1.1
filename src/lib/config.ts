@@ -1,21 +1,36 @@
 let DB_CONFIG: Record<string, string> = {}
 
-if (typeof window === 'undefined') {
-  ;(async () => {
-    try {
-      const { prisma } = await import('@/lib/prisma')
-      const dbConfigEntries = await prisma.configuracionSitio.findMany()
-      DB_CONFIG = dbConfigEntries.reduce((acc, item) => {
-        acc[item.clave] = item.valor
-        return acc
-      }, {} as Record<string, string>)
-    } catch {
-      DB_CONFIG = {}
-    }
-  })()
+type PrismaLike = {
+  configuracionSitio: {
+    findMany: () => Promise<Array<{ clave: string; valor: string }>>
+  }
 }
 
-const getConfigValue = (key: string) => DB_CONFIG[key] ?? process.env[key]
+export const initConfig = async (client?: PrismaLike) => {
+  if (typeof window !== 'undefined') return
+  try {
+    const prisma = client ?? (await import('@/lib/prisma')).prisma
+    const dbConfigEntries = await prisma.configuracionSitio.findMany()
+    DB_CONFIG = dbConfigEntries.reduce((acc, item) => {
+      acc[item.clave] = item.valor
+      return acc
+    }, {} as Record<string, string>)
+  } catch {
+    DB_CONFIG = {}
+  }
+}
+
+const getConfigValueSync = (key: string) => DB_CONFIG[key] ?? process.env[key]
+
+export const getConfigValue = async (key: string, forceRefresh = false) => {
+  if (
+    typeof window === 'undefined' &&
+    (forceRefresh || Object.keys(DB_CONFIG).length === 0)
+  ) {
+    await initConfig()
+  }
+  return getConfigValueSync(key)
+}
 
 // Configuración centralizada del sistema de rifas
 export const CONFIG = {
@@ -128,50 +143,77 @@ export const CONFIG = {
 
   // Configuración de email
   EMAIL: {
-    SMTP_ENABLED:
-      getConfigValue('SMTP_ENABLED') !== undefined
-        ? getConfigValue('SMTP_ENABLED') === 'true'
-        : !!getConfigValue('SMTP_HOST'),
-    HOST: getConfigValue('SMTP_HOST'),
-    PORT: getConfigValue('SMTP_PORT') ? parseInt(getConfigValue('SMTP_PORT') as string) : 587,
-    USER: getConfigValue('SMTP_USER'),
-    PASSWORD: getConfigValue('SMTP_PASSWORD'),
-    FROM_ADDRESS: getConfigValue('FROM_EMAIL') || 'noreply@rifas.com',
+    get SMTP_ENABLED() {
+      return getConfigValueSync('SMTP_ENABLED') !== undefined
+        ? getConfigValueSync('SMTP_ENABLED') === 'true'
+        : !!getConfigValueSync('SMTP_HOST')
+    },
+    get HOST() {
+      return getConfigValueSync('SMTP_HOST')
+    },
+    get PORT() {
+      const value = getConfigValueSync('SMTP_PORT')
+      return value ? parseInt(value as string) : 587
+    },
+    get USER() {
+      return getConfigValueSync('SMTP_USER')
+    },
+    get PASSWORD() {
+      return getConfigValueSync('SMTP_PASSWORD')
+    },
+    get FROM_ADDRESS() {
+      return getConfigValueSync('FROM_EMAIL') || 'noreply@rifas.com'
+    },
     TEMPLATES_PATH: '/templates/email',
-    TEMPLATES: (() => {
+    get TEMPLATES() {
       try {
-        const raw = getConfigValue('EMAIL_TEMPLATES')
+        const raw = getConfigValueSync('EMAIL_TEMPLATES')
         return raw ? JSON.parse(raw) : {}
       } catch {
         return {}
       }
-    })(),
+    },
   },
 
   PAYPAL: {
-    CLIENT_ID: getConfigValue('PAYPAL_CLIENT_ID'),
-    CLIENT_SECRET: getConfigValue('PAYPAL_CLIENT_SECRET'),
-    ENV: getConfigValue('PAYPAL_ENV') || 'sandbox',
+    get CLIENT_ID() {
+      return getConfigValueSync('PAYPAL_CLIENT_ID')
+    },
+    get CLIENT_SECRET() {
+      return getConfigValueSync('PAYPAL_CLIENT_SECRET')
+    },
+    get ENV() {
+      return getConfigValueSync('PAYPAL_ENV') || 'sandbox'
+    },
   },
 
   // Configuración de SMS
   SMS: {
-    ENABLED:
-      getConfigValue('SMS_ENABLED') !== undefined
-        ? getConfigValue('SMS_ENABLED') === 'true'
-        : !!process.env.SMS_PROVIDER,
-    PROVIDER: getConfigValue('SMS_PROVIDER') || process.env.SMS_PROVIDER || 'twilio',
-    ACCOUNT_SID: getConfigValue('SMS_ACCOUNT_SID') || process.env.SMS_ACCOUNT_SID,
-    AUTH_TOKEN: getConfigValue('SMS_AUTH_TOKEN') || process.env.SMS_AUTH_TOKEN,
-    FROM: getConfigValue('SMS_FROM') || process.env.SMS_FROM || 'Rifas',
-    TEMPLATES: (() => {
+    get ENABLED() {
+      return getConfigValueSync('SMS_ENABLED') !== undefined
+        ? getConfigValueSync('SMS_ENABLED') === 'true'
+        : !!process.env.SMS_PROVIDER
+    },
+    get PROVIDER() {
+      return getConfigValueSync('SMS_PROVIDER') || process.env.SMS_PROVIDER || 'twilio'
+    },
+    get ACCOUNT_SID() {
+      return getConfigValueSync('SMS_ACCOUNT_SID') || process.env.SMS_ACCOUNT_SID
+    },
+    get AUTH_TOKEN() {
+      return getConfigValueSync('SMS_AUTH_TOKEN') || process.env.SMS_AUTH_TOKEN
+    },
+    get FROM() {
+      return getConfigValueSync('SMS_FROM') || process.env.SMS_FROM || 'Rifas'
+    },
+    get TEMPLATES() {
       try {
-        const raw = getConfigValue('SMS_TEMPLATES')
+        const raw = getConfigValueSync('SMS_TEMPLATES')
         return raw ? JSON.parse(raw) : {}
       } catch {
         return {}
       }
-    })(),
+    },
   },
 
   // Contacto de administradores
