@@ -1,5 +1,4 @@
 import { CONFIG } from './config'
-import { logError } from './logger'
 
 const BASE_URL = CONFIG.ENDPOINTS.BASE_URL
 
@@ -44,7 +43,10 @@ async function request<T>(method: string, path: string, body?: any, options: Req
     }
     return (await res.text()) as unknown as T
   } catch (err) {
-    logError(`API request error: ${url}`, err)
+    if (typeof window === 'undefined') {
+      const { logError } = await import('./logger')
+      logError?.(`API request error: ${url}`, err)
+    }
     console.error('API request error:', err)
     throw err
   }
