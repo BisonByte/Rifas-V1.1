@@ -31,7 +31,8 @@
     "db:switch-postgres": "node scripts/switch-db.js postgres",
     "db:status": "node scripts/switch-db.js status",
     "vps:setup": "powershell -ExecutionPolicy Bypass -File scripts/setup-vps.ps1",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "check:conexion": "tsx scripts/check-conexion.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

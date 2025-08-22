@@ -399,6 +399,12 @@ NEXTAUTH_SECRET="otra-clave-segura-para-nextauth"
     - Revisa logs con `pm2 logs` si algo falla.
     - Los errores de la aplicación se guardan en `logs/errors.log`. Puedes revisarlos con `tail -f logs/errors.log`.
 
+11. **Comprobar rutas clave de la API**
+    ```bash
+    npm run check:conexion
+    ```
+    Genera un reporte de estado en `logs/conexion.log` para rutas como `/api/rifas` y `/api/admin/dashboard`.
+
 ## 🤝 Contribuir
 
 1. Haz fork del proyecto
