@@ -8,7 +8,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import { get } from '@/lib/api-client'
 import type { ApiResponse } from '@/types'
-import { 
+import {
   Plus,
   Search,
   Filter,
@@ -49,12 +49,21 @@ export default function EventosPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [stats, setStats] = useState({
+    eventos: 0,
+    participantes: 0,
+    tickets: 0,
+    ingresos: 0
+  })
 
   useEffect(() => {
     const fetchEventos = async () => {
       try {
         const json = await get<ApiResponse<RifaApi[]>>('/api/admin/eventos', { cache: 'no-store' })
-        const rifas = json?.success ? json.data : []
+        if (!json?.success || !json.data) {
+          throw new Error(json?.error || 'Error al cargar eventos')
+        }
+        const rifas = json.data
         const mapped = rifas.map((r) => ({
           id: r.id,
           nombre: r.nombre,
@@ -62,12 +71,24 @@ export default function EventosPage() {
           fechaInicio: r.createdAt,
           fechaFin: r.fechaSorteo,
           fechaSorteo: r.fechaSorteo,
-          estado: r.estado === 'ACTIVA' ? 'ACTIVO' : r.estado === 'FINALIZADA' ? 'FINALIZADO' : 'INACTIVO',
+          estado:
+            r.estado === 'ACTIVA' ? 'ACTIVO' : r.estado === 'FINALIZADA' ? 'FINALIZADO' : 'INACTIVO',
           participantes: r._count?.tickets ?? 0,
           ticketsVendidos: r._count?.tickets ?? 0,
           precioTicket: r.precioPorBoleto
         }))
         setEventos(mapped)
+        const totals = rifas.reduce(
+          (acc, r) => {
+            const participantes = r._count?.tickets ?? 0
+            acc.participantes += participantes
+            acc.tickets += participantes
+            acc.ingresos += participantes * r.precioPorBoleto
+            return acc
+          },
+          { eventos: rifas.length, participantes: 0, tickets: 0, ingresos: 0 }
+        )
+        setStats(totals)
       } catch (err) {
         console.error('Error cargando eventos:', err)
         setError(err instanceof Error ? err.message : 'Error al cargar eventos')
@@ -156,7 +177,7 @@ export default function EventosPage() {
                 <Calendar className="h-6 w-6 text-blue-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">2</p>
+                <p className="text-2xl font-bold text-white">{stats.eventos}</p>
                 <p className="text-blue-200 text-sm">Total Eventos</p>
               </div>
             </div>
@@ -170,7 +191,7 @@ export default function EventosPage() {
                 <Users className="h-6 w-6 text-green-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">3,519</p>
+                <p className="text-2xl font-bold text-white">{stats.participantes.toLocaleString()}</p>
                 <p className="text-green-200 text-sm">Participantes</p>
               </div>
             </div>
@@ -184,7 +205,7 @@ export default function EventosPage() {
                 <Ticket className="h-6 w-6 text-purple-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">14,320</p>
+                <p className="text-2xl font-bold text-white">{stats.tickets.toLocaleString()}</p>
                 <p className="text-purple-200 text-sm">Tickets Vendidos</p>
               </div>
             </div>
@@ -198,7 +219,7 @@ export default function EventosPage() {
                 <Eye className="h-6 w-6 text-yellow-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">$271,000</p>
+                <p className="text-2xl font-bold text-white">${stats.ingresos.toLocaleString()}</p>
                 <p className="text-yellow-200 text-sm">Ingresos Totales</p>
               </div>
             </div>
