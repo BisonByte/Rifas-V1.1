@@ -38,6 +38,7 @@ export default function TicketsPage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const limit = 10
+  const [stats, setStats] = useState({ total: 0, activos: 0, ganadores: 0, usados: 0 })
 
   useEffect(() => {
     const fetchTickets = async () => {
@@ -48,6 +49,9 @@ export default function TicketsPage() {
           `/api/admin/tickets?page=${page}&limit=${limit}&search=${encodeURIComponent(searchTerm)}`,
           { cache: 'no-store' }
         )
+        if (!data?.success) {
+          throw new Error(data?.error || 'Error al cargar tickets')
+        }
         setTickets(data.data || [])
         setTotalPages(data.pagination.totalPages)
       } catch (err) {
@@ -59,6 +63,34 @@ export default function TicketsPage() {
 
     fetchTickets()
   }, [page, searchTerm])
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const [totalRes, activosRes, ganadoresRes] = await Promise.all([
+          get<PaginatedResponse<TicketData>>('/api/admin/tickets?limit=1', { cache: 'no-store' }),
+          get<PaginatedResponse<TicketData>>('/api/admin/tickets?estado=DISPONIBLE&limit=1', {
+            cache: 'no-store'
+          }),
+          get<PaginatedResponse<TicketData>>('/api/admin/tickets?estado=GANADOR&limit=1', {
+            cache: 'no-store'
+          })
+        ])
+        if (!totalRes.success || !activosRes.success || !ganadoresRes.success) {
+          throw new Error('Error al cargar estadísticas de tickets')
+        }
+        const total = totalRes.pagination.total
+        const activos = activosRes.pagination.total
+        const ganadores = ganadoresRes.pagination.total
+        const usados = total - activos - ganadores
+        setStats({ total, activos, ganadores, usados })
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error al cargar estadísticas')
+      }
+    }
+
+    fetchStats()
+  }, [])
 
   const getEstadoBadge = (estado: string) => {
     switch (estado) {
@@ -110,7 +142,7 @@ export default function TicketsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold text-white">46,813</p>
+                <p className="text-2xl font-bold text-white">{stats.total.toLocaleString()}</p>
                 <p className="text-sm text-gray-400">Total Tickets</p>
               </div>
               <Ticket className="h-8 w-8 text-blue-500" />
@@ -121,7 +153,7 @@ export default function TicketsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold text-green-500">45,200</p>
+                <p className="text-2xl font-bold text-green-500">{stats.activos.toLocaleString()}</p>
                 <p className="text-sm text-gray-400">Activos</p>
               </div>
               <Ticket className="h-8 w-8 text-green-500" />
@@ -132,7 +164,7 @@ export default function TicketsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold text-yellow-500">10</p>
+                <p className="text-2xl font-bold text-yellow-500">{stats.ganadores.toLocaleString()}</p>
                 <p className="text-sm text-gray-400">Ganadores</p>
               </div>
               <Ticket className="h-8 w-8 text-yellow-500" />
@@ -143,7 +175,7 @@ export default function TicketsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold text-gray-400">1,603</p>
+                <p className="text-2xl font-bold text-gray-400">{stats.usados.toLocaleString()}</p>
                 <p className="text-sm text-gray-400">Usados</p>
               </div>
               <Ticket className="h-8 w-8 text-gray-400" />
