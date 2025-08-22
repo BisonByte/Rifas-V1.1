@@ -1,0 +1,281 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id        String   @id @default(cuid())
+  nombre    String
+  email     String   @unique
+  celular   String?
+  password  String
+  rol       String   @default("VENDEDOR")
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  refreshTokens RefreshToken[]
+
+  @@map("usuarios")
+}
+
+model Rifa {
+  id              String      @id @default(cuid())
+  nombre          String
+  descripcion     String      
+  fechaSorteo     DateTime
+  precioPorBoleto Float     
+  totalBoletos    Int
+  limitePorPersona Int?       @default(10)
+  estado          String      @default("BORRADOR")
+  tiempoReserva   Int         @default(30)
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  premios         Premio[]
+  tickets         Ticket[]
+  compras         Compra[]
+  sorteo          Sorteo?     // Relación uno a uno con el sorteo
+
+  @@map("rifas")
+}
+
+model Premio {
+  id              String   @id @default(cuid())
+  rifaId          String
+  titulo          String
+  descripcion     String?  
+  cantidad        Int      @default(1)
+  orden           Int?
+  ticketGanadorId String?  @unique
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  rifa            Rifa     @relation(fields: [rifaId], references: [id], onDelete: Cascade)
+  ticketGanador   Ticket?  @relation("PremioGanador", fields: [ticketGanadorId], references: [id])
+
+  @@map("premios")
+}
+
+model Participante {
+  id              String   @id @default(cuid())
+  nombre          String
+  celular         String   @unique
+  email           String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tickets         Ticket[]
+  compras         Compra[]
+
+  @@map("participantes")
+}
+
+model Ticket {
+  id              String        @id @default(cuid())
+  numero          Int
+  rifaId          String
+  participanteId  String?
+  compraId        String?
+  estado          String        @default("DISPONIBLE")
+  monto           Float?      
+  fechaReserva    DateTime?
+  fechaVencimiento DateTime?
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  rifa            Rifa          @relation(fields: [rifaId], references: [id], onDelete: Cascade)
+  participante    Participante? @relation(fields: [participanteId], references: [id])
+  compra          Compra?       @relation(fields: [compraId], references: [id])
+  
+  // Relaciones inversas para sorteos y premios
+  sorteoGanador   Sorteo?       @relation("TicketGanador")
+  premioGanador   Premio?       @relation("PremioGanador")
+
+  @@unique([numero, rifaId], name: "rifaId_numero")
+  @@map("tickets")
+}
+
+model Compra {
+  id              String       @id @default(cuid())
+  rifaId          String
+  participanteId  String
+  cantidadTickets Int          @default(1)
+  monto           Float        // Monto unitario por ticket
+  montoTotal      Float        // Campo calculado (monto * cantidadTickets)
+  metodoPago      String       @default("TRANSFERENCIA")
+  estadoPago      String       @default("PENDIENTE")
+  voucherUrl      String?
+  imagenComprobante String?    // URL de la imagen del comprobante
+  bancoId         String?
+  referencia      String?
+  paymentId       String?
+  fechaVencimiento DateTime?
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  rifa            Rifa         @relation(fields: [rifaId], references: [id], onDelete: Cascade)
+  participante    Participante @relation(fields: [participanteId], references: [id])
+  banco           CuentaBancaria? @relation(fields: [bancoId], references: [id])
+  tickets         Ticket[]
+
+  @@map("compras")
+}
+
+model CuentaBancaria {
+  id            String   @id @default(cuid())
+  banco         String
+  titular       String
+  numero        String   @unique
+  tipoCuenta    String?  
+  activa        Boolean  @default(true)
+  orden         Int?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  compras       Compra[]
+
+  @@map("cuentas_bancarias")
+}
+
+model Sorteo {
+  id              String   @id @default(cuid())
+  rifaId          String   @unique
+  numeroGanador   Int?
+  ticketGanadorId String?  @unique
+  metodo          String   @default("AUTOMATICO") // AUTOMATICO, MANUAL
+  semilla         String?  // Para reproducibilidad
+  fechaSorteo     DateTime @default(now())
+  fechaHora       DateTime @default(now()) // Alias para fechaSorteo (compatibilidad)
+  verificado      Boolean  @default(false)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  rifa            Rifa     @relation(fields: [rifaId], references: [id], onDelete: Cascade)
+  ticketGanador   Ticket?  @relation("TicketGanador", fields: [ticketGanadorId], references: [id])
+
+  @@map("sorteos")
+}
+
+model Notificacion {
+  id                  String    @id @default(cuid())
+  tipo                String    // INFO, WARNING, ERROR, SUCCESS
+  titulo              String
+  mensaje             String
+  leida               Boolean   @default(false)
+  usuarioId           String?   // Para notificaciones específicas de usuario
+  participanteId      String?   // Para notificaciones de participantes
+  paraAdministradores Boolean   @default(false) // Si es para todos los admins
+  metadata            String?   // JSON con datos adicionales
+  fechaLectura        DateTime? // Cuando fue leída
+  creadaPor           String?   // Usuario que creó la notificación
+  leidaPor            String?   // Usuario que marcó como leída
+  
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@map("notificaciones")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  evento      String   // LOGIN, LOGOUT, CREATE_RIFA, etc.
+  accion      String?  // Alias para evento (compatibilidad)
+  usuarioId   String?
+  entidad     String?  // Nombre del modelo afectado
+  entidadId   String?  // ID del registro afectado
+  detalles    String?  // JSON con datos adicionales
+  payload     String?  // JSON con payload completo (compatibilidad)
+  ipAddress   String?
+  userAgent   String?
+  timestamp   DateTime? // Alias para createdAt (compatibilidad)
+  creadaPor   String?   // Usuario que realizó la acción
+  
+  createdAt   DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
+model Configuracion {
+  id          String   @id @default(cuid())
+  clave       String   @unique
+  valor       String
+  descripcion String?
+  tipo        String   @default("STRING") // STRING, NUMBER, BOOLEAN, JSON
+  categoria   String   @default("GENERAL")
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("configuraciones")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user Usuario @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model ConfiguracionSitio {
+  id    String @id @default(cuid())
+  clave String @unique
+  valor String // JSON como string para SQLite
+  tipo  String // 'text', 'number', 'boolean', 'json', 'image'
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("configuracion_sitio")
+}
+
+model MetodoPago {
+  id          String  @id @default(cuid())
+  nombre      String  @unique
+  tipo        String  // 'banco', 'pago_movil', 'efectivo', etc.
+  descripcion String?
+  imagen      String?
+  activo      Boolean @default(true)
+  orden       Int     @default(0)
+  
+  // Campos específicos para bancos
+  numeroCuenta String?
+  tipoCuenta   String?
+  cedula       String?
+  telefono     String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("metodos_pago")
+}
+
+model RedSocial {
+  id        String  @id @default(cuid())
+  nombre    String  @unique
+  url       String
+  icono     String?
+  activo    Boolean @default(true)
+  orden     Int     @default(0)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("redes_sociales")
+}
