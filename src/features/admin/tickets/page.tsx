@@ -1,15 +1,18 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/badge'
-import { 
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
+import { get } from '@/lib/api-client'
+import { PaginatedResponse } from '@/types'
+import {
   Search,
   Filter,
   Ticket,
   Calendar,
-  User,
   Eye,
   Download
 } from 'lucide-react'
@@ -17,53 +20,79 @@ import {
 interface TicketData {
   id: string
   numero: number
-  evento: string
-  participante: {
+  rifa: { nombre: string }
+  participante?: {
     nombre: string
-    cedula: string
+    celular: string
   }
-  fechaCompra: string
-  estado: 'ACTIVO' | 'GANADOR' | 'USADO'
-  monto: number
+  createdAt: string
+  estado: string
+  monto?: number
 }
 
 export default function TicketsPage() {
-  const [tickets] = useState<TicketData[]>([
-    {
-      id: '1',
-      numero: 101,
-      evento: 'EVENTO AZUL ES HOY',
-      participante: { nombre: 'Yanibel Pérez', cedula: '12345678' },
-      fechaCompra: '2025-08-16T10:30:00Z',
-      estado: 'ACTIVO',
-      monto: 50
-    },
-    {
-      id: '2',
-      numero: 102,
-      evento: 'EVENTO GRATIS',
-      participante: { nombre: 'Kike Rodriguez', cedula: '87654321' },
-      fechaCompra: '2025-08-15T14:20:00Z',
-      estado: 'ACTIVO',
-      monto: 0
+  const [tickets, setTickets] = useState<TicketData[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const limit = 10
+
+  useEffect(() => {
+    const fetchTickets = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const data = await get<PaginatedResponse<TicketData>>(
+          `/api/admin/tickets?page=${page}&limit=${limit}&search=${encodeURIComponent(searchTerm)}`,
+          { cache: 'no-store' }
+        )
+        setTickets(data.data || [])
+        setTotalPages(data.pagination.totalPages)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error desconocido')
+      } finally {
+        setLoading(false)
+      }
     }
-  ])
+
+    fetchTickets()
+  }, [page, searchTerm])
 
   const getEstadoBadge = (estado: string) => {
     switch (estado) {
-      case 'ACTIVO':
-        return <Badge className="bg-green-500 text-white">Activo</Badge>
+      case 'PAGADO':
+        return <Badge className="bg-green-500 text-white">Pagado</Badge>
       case 'GANADOR':
         return <Badge className="bg-yellow-500 text-black">Ganador</Badge>
-      case 'USADO':
-        return <Badge className="bg-gray-500 text-white">Usado</Badge>
+      case 'RESERVADO':
+        return <Badge className="bg-blue-500 text-white">Reservado</Badge>
+      case 'PENDIENTE_PAGO':
+        return <Badge className="bg-orange-500 text-white">Pendiente</Badge>
+      case 'DISPONIBLE':
+        return <Badge className="bg-gray-500 text-white">Disponible</Badge>
       default:
         return <Badge className="bg-gray-500 text-white">{estado}</Badge>
     }
   }
 
+  if (loading) {
+    return (
+      <div className="p-6">
+        <LoadingSpinner />
+      </div>
+    )
+  }
+
   return (
     <div className="p-6 space-y-6">
+      {error && (
+        <Alert variant="destructive">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white">Gestión de Tickets</h1>
@@ -132,6 +161,11 @@ export default function TicketsPage() {
               <input
                 type="text"
                 placeholder="Buscar tickets por número, participante..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value)
+                  setPage(1)
+                }}
                 className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
             </div>
@@ -169,23 +203,27 @@ export default function TicketsPage() {
                       <span className="text-white font-mono font-bold text-lg">#{ticket.numero}</span>
                     </td>
                     <td className="p-4">
-                      <span className="text-white text-sm">{ticket.evento}</span>
+                      <span className="text-white text-sm">{ticket.rifa.nombre}</span>
                     </td>
                     <td className="p-4">
-                      <div>
-                        <p className="text-white font-medium text-sm">{ticket.participante.nombre}</p>
-                        <p className="text-gray-400 text-xs">{ticket.participante.cedula}</p>
-                      </div>
+                      {ticket.participante ? (
+                        <div>
+                          <p className="text-white font-medium text-sm">{ticket.participante.nombre}</p>
+                          <p className="text-gray-400 text-xs">{ticket.participante.celular}</p>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-sm">-</span>
+                      )}
                     </td>
                     <td className="p-4">
                       <div className="flex items-center text-sm text-gray-300">
                         <Calendar className="h-3 w-3 mr-2 text-gray-400" />
-                        {new Date(ticket.fechaCompra).toLocaleDateString('es-ES')}
+                        {new Date(ticket.createdAt).toLocaleDateString('es-ES')}
                       </div>
                     </td>
                     <td className="p-4">
                       <span className="text-white font-medium">
-                        {ticket.monto > 0 ? `$${ticket.monto}` : 'Gratis'}
+                        {ticket.monto && ticket.monto > 0 ? `$${ticket.monto}` : 'Gratis'}
                       </span>
                     </td>
                     <td className="p-4">
@@ -200,6 +238,29 @@ export default function TicketsPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+          <div className="flex items-center justify-between p-4 border-t border-gray-700">
+            <span className="text-sm text-gray-400">Página {page} de {totalPages}</span>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              >
+                Anterior
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              >
+                Siguiente
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
