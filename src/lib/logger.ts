@@ -46,35 +46,37 @@ let logError: ((message: string, meta?: unknown) => Promise<void>) | undefined
 let logWarn: ((message: string, meta?: unknown) => Promise<void>) | undefined
 
 if (typeof window === 'undefined') {
-  const path = await import('path')
-  const fs = await import('fs/promises')
+  ;(async () => {
+    const path = await import('path')
+    const fs = await import('fs/promises')
 
-  const logDir = path.join(process.cwd(), 'logs')
-  const logFile = path.join(logDir, 'errors.log')
+    const logDir = path.join(process.cwd(), 'logs')
+    const logFile = path.join(logDir, 'errors.log')
 
-  const writeLog = async (
-    level: LogLevel,
-    message: string,
-    meta?: unknown,
-  ) => {
-    if (!shouldLog(level)) return
-    const timestamp = new Date().toISOString()
-    const sanitized = meta ? sanitizeMeta(meta) : undefined
-    const metaString = sanitized ? ` ${JSON.stringify(sanitized)}` : ''
-    const entry = `[${timestamp}] [${level}] ${message}${metaString}\n`
-    try {
-      await fs.mkdir(logDir, { recursive: true })
-      await fs.appendFile(logFile, entry)
-    } catch (err) {
-      console.error('Failed to write to log file', err)
+    const writeLog = async (
+      level: LogLevel,
+      message: string,
+      meta?: unknown,
+    ) => {
+      if (!shouldLog(level)) return
+      const timestamp = new Date().toISOString()
+      const sanitized = meta ? sanitizeMeta(meta) : undefined
+      const metaString = sanitized ? ` ${JSON.stringify(sanitized)}` : ''
+      const entry = `[${timestamp}] [${level}] ${message}${metaString}\n`
+      try {
+        await fs.mkdir(logDir, { recursive: true })
+        await fs.appendFile(logFile, entry)
+      } catch (err) {
+        console.error('Failed to write to log file', err)
+      }
     }
-  }
 
-  logError = async (message: string, meta?: unknown) =>
-    writeLog('ERROR', message, meta)
+    logError = async (message: string, meta?: unknown) =>
+      writeLog('ERROR', message, meta)
 
-  logWarn = async (message: string, meta?: unknown) =>
-    writeLog('WARN', message, meta)
+    logWarn = async (message: string, meta?: unknown) =>
+      writeLog('WARN', message, meta)
+  })()
 }
 
 const logger = { logError, logWarn }
