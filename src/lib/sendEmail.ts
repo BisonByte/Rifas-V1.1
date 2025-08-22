@@ -1,4 +1,5 @@
 import { CONFIG } from '@/lib/config'
+import { logWarn } from '@/lib/logger'
 
 export async function sendEmail(
   to: string,
@@ -7,7 +8,7 @@ export async function sendEmail(
   type?: string
 ) {
   if (!CONFIG.EMAIL.SMTP_ENABLED) {
-    console.warn('SMTP no está configurado')
+    await logWarn?.('SMTP no está configurado')
     return
   }
 
@@ -24,8 +25,7 @@ export async function sendEmail(
     // Importación dinámica para evitar errores si la dependencia no está instalada
     nodemailer = (await eval('import("nodemailer")')).default
   } catch (error) {
-    console.warn('nodemailer no está instalado, no se envió el email')
-    console.log({ to, subject, text })
+    await logWarn?.('Email no enviado; nodemailer ausente', { type })
     return
   }
 
