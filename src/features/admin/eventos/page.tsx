@@ -4,6 +4,10 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/badge'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
+import { get } from '@/lib/api-client'
+import type { ApiResponse } from '@/types'
 import { 
   Plus,
   Search,
@@ -29,35 +33,51 @@ interface Evento {
   precioTicket: number
 }
 
+interface RifaApi {
+  id: string
+  nombre: string
+  descripcion: string
+  fechaSorteo: string
+  createdAt: string
+  estado: string
+  precioPorBoleto: number
+  _count?: { tickets: number }
+}
+
 export default function EventosPage() {
-  const [eventos, setEventos] = useState<Evento[]>([
-    {
-      id: '1',
-      nombre: 'EVENTO AZUL ES HOY',
-      descripcion: 'Evento especial con premios increíbles',
-      fechaInicio: '2025-08-01',
-      fechaFin: '2025-08-31',
-      fechaSorteo: '2025-09-01',
-      estado: 'ACTIVO',
-      participantes: 1019,
-      ticketsVendidos: 5420,
-      precioTicket: 50
-    },
-    {
-      id: '2',
-      nombre: 'EVENTO GRATIS',
-      descripcion: 'Evento gratuito para todos',
-      fechaInicio: '2025-08-15',
-      fechaFin: '2025-09-15',
-      fechaSorteo: '2025-09-20',
-      estado: 'ACTIVO',
-      participantes: 2500,
-      ticketsVendidos: 8900,
-      precioTicket: 0
-    },
-  ])
-  const [loading, setLoading] = useState(false)
+  const [eventos, setEventos] = useState<Evento[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+
+  useEffect(() => {
+    const fetchEventos = async () => {
+      try {
+        const json = await get<ApiResponse<RifaApi[]>>('/api/admin/eventos', { cache: 'no-store' })
+        const rifas = json?.success ? json.data : []
+        const mapped = rifas.map((r) => ({
+          id: r.id,
+          nombre: r.nombre,
+          descripcion: r.descripcion,
+          fechaInicio: r.createdAt,
+          fechaFin: r.fechaSorteo,
+          fechaSorteo: r.fechaSorteo,
+          estado: r.estado === 'ACTIVA' ? 'ACTIVO' : r.estado === 'FINALIZADA' ? 'FINALIZADO' : 'INACTIVO',
+          participantes: r._count?.tickets ?? 0,
+          ticketsVendidos: r._count?.tickets ?? 0,
+          precioTicket: r.precioPorBoleto
+        }))
+        setEventos(mapped)
+      } catch (err) {
+        console.error('Error cargando eventos:', err)
+        setError(err instanceof Error ? err.message : 'Error al cargar eventos')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchEventos()
+  }, [])
 
   const getEstadoBadge = (estado: string) => {
     switch (estado) {
@@ -78,6 +98,25 @@ export default function EventosPage() {
       month: 'short',
       day: 'numeric'
     })
+  }
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <LoadingSpinner />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <Alert variant="destructive">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      </div>
+    )
   }
 
   return (
