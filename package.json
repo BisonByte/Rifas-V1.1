@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "node --test --import tsx",
     "maint:fix-admin-role": "tsx scripts/maintenance/fix-admin-role.ts",
     "maint:fix-admin-complete": "tsx scripts/maintenance/fix-admin-complete.ts",
     "maint:check-users": "tsx scripts/maintenance/check-users.ts",
