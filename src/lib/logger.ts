@@ -1,26 +1,26 @@
-import fs from 'fs'
-import path from 'path'
+let logError: ((message: string, meta?: unknown) => Promise<void>) | undefined
 
-const logDir = path.join(process.cwd(), 'logs')
-const logFile = path.join(logDir, 'errors.log')
+if (typeof window === 'undefined') {
+  const path = await import('path')
+  const fs = await import('fs/promises')
 
-if (!fs.existsSync(logDir)) {
-  fs.mkdirSync(logDir, { recursive: true })
-}
+  const logDir = path.join(process.cwd(), 'logs')
+  const logFile = path.join(logDir, 'errors.log')
 
-export function logError(message: string, meta?: unknown) {
-  const timestamp = new Date().toISOString()
-  const metaString = meta ? ` ${JSON.stringify(meta)}` : ''
-  const entry = `[${timestamp}] ${message}${metaString}\n`
-
-  fs.appendFile(logFile, entry, err => {
-    if (err) {
+  logError = async (message: string, meta?: unknown) => {
+    const timestamp = new Date().toISOString()
+    const metaString = meta ? ` ${JSON.stringify(meta)}` : ''
+    const entry = `[${timestamp}] ${message}${metaString}\n`
+    try {
+      await fs.mkdir(logDir, { recursive: true })
+      await fs.appendFile(logFile, entry)
+    } catch (err) {
       console.error('Failed to write to log file', err)
     }
-  })
+  }
 }
 
-export default {
-  logError,
-}
+const logger = { logError }
 
+export { logError }
+export default logger

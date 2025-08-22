@@ -398,6 +398,7 @@ NEXTAUTH_SECRET="otra-clave-segura-para-nextauth"
     - Ingresa con el usuario administrador creado.
     - Revisa logs con `pm2 logs` si algo falla.
     - Los errores de la aplicación se guardan en `logs/errors.log`. Puedes revisarlos con `tail -f logs/errors.log`.
+    - En plataformas serverless el sistema de archivos suele ser efímero, por lo que estos registros pueden no persistir. Considera usar un servicio remoto de logging (por ejemplo, Logtail, Sentry) para almacenamiento duradero.
 
 11. **Comprobar rutas clave de la API**
     ```bash
