@@ -21,5 +21,10 @@ const nextConfig = {
     NEXTAUTH_URL: process.env.NEXTAUTH_URL,
   },
 };
+require('tsx/cjs')
+const { initConfig } = require('./src/lib/config')
 
-module.exports = nextConfig;
+module.exports = async () => {
+  await initConfig()
+  return nextConfig
+};
