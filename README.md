@@ -397,6 +397,7 @@ NEXTAUTH_SECRET="otra-clave-segura-para-nextauth"
     - Visita `http://tu-dominio.com` o la IP del VPS.
     - Ingresa con el usuario administrador creado.
     - Revisa logs con `pm2 logs` si algo falla.
+    - Los errores de la aplicación se guardan en `logs/errors.log`. Puedes revisarlos con `tail -f logs/errors.log`.
 
 ## 🤝 Contribuir
 
