@@ -160,7 +160,7 @@ async function main() {
   console.log(`- 1 Rifa: "${rifa.nombre}"`)
   console.log(`- ${tickets.length} Tickets (20 vendidos, 10 reservados, 20 disponibles)`)
   console.log(`- 1 Método de pago: "${metodoPago.nombre}"`)
-  console.log(`- ${pagos.length} Pagos de prueba`)
+  console.log(`- ${compras.length} Compras/Pagos de prueba`)
   console.log(`- ${configuraciones.length} Configuraciones del sitio`)
   console.log(`- ${redesSociales.length} Redes sociales`)
   console.log('\n🔗 Accede al admin en: http://localhost:3000/admin')

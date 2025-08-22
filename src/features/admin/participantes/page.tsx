@@ -42,8 +42,8 @@ export default function ParticipantesPage() {
   useEffect(() => {
     const fetchParticipantes = async () => {
       try {
-        const data = await get('/api/admin/participantes', { cache: 'no-store' })
-        setParticipantes(data.data || [])
+  const data = await get('/api/admin/participantes', { cache: 'no-store' }) as any
+  setParticipantes((data?.success ? data.data : data) || [])
       } catch (err: any) {
         setError(err.message || 'Error desconocido')
       } finally {

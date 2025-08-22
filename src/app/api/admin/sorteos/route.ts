@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       const adminId = currentUser.id
       
       // Verificar que la rifa existe y está lista para sorteo
-      const rifa = await tx.rifa.findUnique({
+  const rifa = await tx.rifa.findUnique({
         where: { id: rifaId },
         include: {
           premios: {
@@ -88,13 +88,23 @@ export async function POST(request: NextRequest) {
         throw new Error('Ya se realizó el sorteo para esta rifa')
       }
       
-      // Preparar tickets participantes
+      // Preparar mapa de tickets y participantes para acceso rápido
       const ticketsParticipantes = rifa.tickets.map((ticket: any) => ({
+        id: ticket.id,
         numero: ticket.numero,
         participanteId: ticket.participanteId,
-        participanteName: ticket.participante.nombre,
-        participanteCelular: ticket.participante.celular
+        participanteName: ticket.participante?.nombre,
+        participanteCelular: ticket.participante?.celular || null,
       }))
+      const ticketsByNumero = new Map<number, { id: string; participanteId: string; participanteName: string; participanteCelular: string | null }>()
+      for (const t of ticketsParticipantes) {
+        ticketsByNumero.set(t.numero, {
+          id: t.id,
+          participanteId: t.participanteId,
+          participanteName: t.participanteName,
+          participanteCelular: t.participanteCelular,
+        })
+      }
       
       let ganadores: Array<{
         premioId: string;
@@ -185,31 +195,30 @@ export async function POST(request: NextRequest) {
         }
       })
       
-      // Crear registros de ganadores
-      const ganadoresCreados = await Promise.all(
-        ganadores.map((ganador, index) =>
-          tx.ganador.create({
-            data: {
-              sorteoId: sorteo.id,
-              premioId: ganador.premioId,
-              participanteId: ganador.participanteId,
-              numeroTicket: ganador.ticketGanador,
-              posicion: index + 1,
-              notificado: false
-            },
-            include: {
-              premio: true,
-              participante: {
-                select: {
-                  nombre: true,
-                  celular: true,
-                  email: true
-                }
-              }
-            }
-          })
-        )
-      )
+      // Actualizar premios con ticket ganador y preparar datos de respuesta
+      const ganadoresDetallados: Array<{
+        posicion: number
+        numeroTicket: number
+        premio: { id: string; nombre: string }
+        participante: { id: string; nombre: string; celular: string | null }
+      }> = []
+      for (let index = 0; index < ganadores.length; index++) {
+        const g = ganadores[index]
+        const tinfo = ticketsByNumero.get(g.ticketGanador)
+        if (!tinfo) continue
+        // Actualizar el premio con el ticket ganador
+        await tx.premio.update({
+          where: { id: g.premioId },
+          data: { ticketGanadorId: tinfo.id }
+        })
+        const premio = rifa.premios.find((p: any) => p.id === g.premioId)!
+        ganadoresDetallados.push({
+          posicion: index + 1,
+          numeroTicket: g.ticketGanador,
+          premio: { id: premio.id, nombre: premio.titulo || premio.nombre || 'Premio' },
+          participante: { id: tinfo.participanteId, nombre: tinfo.participanteName, celular: tinfo.participanteCelular }
+        })
+      }
       
       // Actualizar estado de la rifa
       await tx.rifa.update({
@@ -218,7 +227,7 @@ export async function POST(request: NextRequest) {
       })
       
       // Crear notificaciones para ganadores
-      for (const ganadorCreado of ganadoresCreados) {
+      for (const ganadorCreado of ganadoresDetallados) {
         await tx.notificacion.create({
           data: {
             tipo: 'GANADOR',
@@ -232,7 +241,7 @@ export async function POST(request: NextRequest) {
               ticketNumero: ganadorCreado.numeroTicket,
               posicion: ganadorCreado.posicion
             },
-            participanteId: ganadorCreado.participanteId
+            participanteId: ganadorCreado.participante.id
           }
         })
       }
@@ -242,11 +251,11 @@ export async function POST(request: NextRequest) {
         data: {
           tipo: 'SORTEO_REALIZADO',
           titulo: `Sorteo realizado: ${rifa.nombre}`,
-          mensaje: `Se ha completado el sorteo de "${rifa.nombre}" con ${ganadoresCreados.length} ganadores.`,
+          mensaje: `Se ha completado el sorteo de "${rifa.nombre}" con ${ganadoresDetallados.length} ganadores.`,
           datos: {
             rifaId: rifa.id,
             rifaNombre: rifa.nombre,
-            totalGanadores: ganadoresCreados.length,
+            totalGanadores: ganadoresDetallados.length,
             ticketsParticipantes: ticketsParticipantes.length,
             fechaSorteo: sorteo.fechaSorteo
           },
@@ -283,13 +292,13 @@ export async function POST(request: NextRequest) {
           fechaSorteo: sorteo.fechaSorteo,
           metodo: metodoSorteo,
           ticketsParticipantes: ticketsParticipantes.length,
-          ganadores: ganadoresCreados.map(g => ({
+          ganadores: ganadoresDetallados.map(g => ({
             posicion: g.posicion,
             ticket: g.numeroTicket,
             premio: g.premio.nombre,
             participante: {
               nombre: g.participante.nombre,
-              celular: g.participante.celular.replace(/(\d{3})(\d{3})(\d{4})/, '$1-***-$3') // Enmascarar
+              celular: (g.participante.celular || '').replace(/(\d{3})(\d{3})(\d{4})/, '$1-***-$3')
             }
           }))
         }
@@ -303,27 +312,9 @@ export async function POST(request: NextRequest) {
     timeout: 30000 // 30 segundos timeout para sorteos grandes
   })
 
+  // Enviar notificaciones básicas al admin (sin recorrer modelo Ganador inexistente)
   if (transaction.success) {
     try {
-      const ganadores = await prisma.ganador.findMany({
-        where: { sorteoId: transaction.data.sorteoId },
-        include: { participante: true, premio: true }
-      })
-      for (const g of ganadores) {
-        if (g.participante.email) {
-          await sendEmail(
-            g.participante.email,
-            `¡Ganaste ${g.premio.nombre}!`,
-            `Tu ticket #${g.numeroTicket} resultó ganador en la rifa ${transaction.data.rifaNombre}.`
-          )
-        }
-        if (g.participante.celular) {
-          await sendSMS(
-            g.participante.celular,
-            `Ganaste ${g.premio.nombre} en la rifa ${transaction.data.rifaNombre}. Ticket #${g.numeroTicket}.`
-          )
-        }
-      }
       if (CONFIG.ADMIN.EMAIL) {
         await sendEmail(
           CONFIG.ADMIN.EMAIL,

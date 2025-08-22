@@ -69,7 +69,7 @@ export function FloatingSupportButtons() {
 
   useEffect(() => {
     get('/api/configuracion')
-      .then((json) => {
+      .then((json: any) => {
         // Tolerar ambas formas: {success, data} o lista/objeto directo
         const maybe = (json?.success ? json.data : json) as any
         if (Array.isArray(maybe)) {

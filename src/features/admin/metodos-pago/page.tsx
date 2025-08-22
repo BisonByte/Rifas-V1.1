@@ -29,7 +29,7 @@ export default function MetodosPagoPage() {
   const cargarMetodos = async () => {
     try {
       const data = await get('/api/admin/metodos-pago')
-      setMetodos(data)
+      setMetodos((data as any)?.success ? (data as any).data : (data as MetodoPago[]))
     } catch (error) {
       console.error('Error cargando métodos de pago:', error)
     } finally {

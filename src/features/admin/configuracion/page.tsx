@@ -27,7 +27,7 @@ export default function ConfiguracionPage() {
   const cargarConfiguracion = async () => {
     try {
       const json = await get('/api/admin/configuracion')
-      const payload: any = json?.success ? json.data : json
+      const payload = (json as any)?.success ? (json as any).data : json
 
       if (Array.isArray(payload)) {
         setConfig(payload as any)
@@ -78,11 +78,12 @@ export default function ConfiguracionPage() {
       const fd = new FormData()
       fd.append('file', file)
       const json = await post('/api/upload', fd)
-      if (json?.success && json?.url) {
-        handleChange('logo_url', json.url)
+      const res = json as any
+      if (res?.success && res?.url) {
+        handleChange('logo_url', res.url)
         alert('Logo subido correctamente')
       } else {
-        alert(json?.error || 'No se pudo subir el logo')
+        alert((res && res.error) || 'No se pudo subir el logo')
       }
     } catch (e) {
       console.error(e)

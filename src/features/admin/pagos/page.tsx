@@ -48,7 +48,8 @@ export default function PagosPage() {
   const fetchPagos = async () => {
     try {
       const json = await get('/api/admin/verificar-pagos', { cache: 'no-store' })
-      const mapped = (json.data || []).map((p: any) => ({
+      const payload = (json as any)?.success ? (json as any).data : (json as any)
+      const mapped = (payload || []).map((p: any) => ({
         id: p.id,
         participante: {
           nombre: p.participante?.nombre || '',

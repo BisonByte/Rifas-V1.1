@@ -1,16 +1,18 @@
 let DB_CONFIG: Record<string, string> = {}
 
 if (typeof window === 'undefined') {
-  try {
-    const { prisma } = await import('@/lib/prisma')
-    const dbConfigEntries = await prisma.configuracionSitio.findMany()
-    DB_CONFIG = dbConfigEntries.reduce((acc, item) => {
-      acc[item.clave] = item.valor
-      return acc
-    }, {} as Record<string, string>)
-  } catch {
-    DB_CONFIG = {}
-  }
+  ;(async () => {
+    try {
+      const { prisma } = await import('@/lib/prisma')
+      const dbConfigEntries = await prisma.configuracionSitio.findMany()
+      DB_CONFIG = dbConfigEntries.reduce((acc, item) => {
+        acc[item.clave] = item.valor
+        return acc
+      }, {} as Record<string, string>)
+    } catch {
+      DB_CONFIG = {}
+    }
+  })()
 }
 
 const getConfigValue = (key: string) => DB_CONFIG[key] ?? process.env[key]

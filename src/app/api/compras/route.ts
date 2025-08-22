@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
       const order = await createOrder(validatedData.metodoPago.montoTotal)
       if (order?.id) {
         paymentId = order.id
-        paymentLink = order.approvalLink || order.approvalUrl || null
+        paymentLink = order.approvalLink || null
         await prisma.compra.update({
           where: { id: compra.id },
           data: { paymentId }

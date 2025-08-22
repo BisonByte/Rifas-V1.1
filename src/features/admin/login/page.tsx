@@ -46,8 +46,8 @@ function LoginContent() {
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        const data = await get('/api/auth/me')
-        if (data.success && ['ADMIN', 'SUPER_ADMIN'].includes(data.user.rol)) {
+        const data = await get('/api/auth/me') as any
+        if (data?.success && ['ADMIN', 'SUPER_ADMIN'].includes(data?.user?.rol)) {
           router.push(redirectTo)
         }
       } catch (error) {

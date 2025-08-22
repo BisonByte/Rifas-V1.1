@@ -20,15 +20,16 @@ function b64ToBytes(b64: string): Uint8Array {
 
 export async function GET() {
   try {
-    const bytes = b64ToBytes(PNG_BASE64)
-    return new Response(bytes, {
+  const bytes = b64ToBytes(PNG_BASE64)
+  const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
+  return new Response(ab as ArrayBuffer, {
       status: 200,
       headers: {
         'Content-Type': 'image/png',
         'Cache-Control': 'public, max-age=31536000, immutable',
       },
     })
-  } catch (err) {
+  } catch (_err) {
     return new Response('icon error', { status: 500 })
   }
 }

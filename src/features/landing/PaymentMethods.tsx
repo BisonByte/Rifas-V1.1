@@ -18,9 +18,9 @@ export function PaymentMethods() {
 
   useEffect(() => {
     get('/api/metodos-pago')
-      .then(json => {
+      .then((json: any) => {
         const data = json?.success ? json.data : json
-        setMetodos(data.filter((m: MetodoPago) => m.activo))
+        setMetodos(Array.isArray(data) ? data.filter((m: MetodoPago) => m.activo) : [])
       })
       .catch(console.error)
   }, [])

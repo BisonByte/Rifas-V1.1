@@ -40,7 +40,8 @@ async function main() {
         })
         console.log(`✅ Método de pago: ${metodo.nombre}`)
       } catch (error) {
-        console.log(`ℹ️ ${metodo.nombre} ya existe o error:`, error.message)
+        const msg = error instanceof Error ? error.message : String(error)
+        console.log(`ℹ️ ${metodo.nombre} ya existe o error:`, msg)
       }
     }
 
@@ -52,7 +53,8 @@ async function main() {
     console.log('- Compras realizadas')
 
   } catch (error) {
-    console.error('❌ Error:', error.message)
+    const msg = error instanceof Error ? error.message : String(error)
+    console.error('❌ Error:', msg)
   }
 }
 

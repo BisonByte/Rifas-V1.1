@@ -11,18 +11,18 @@ function buildUrl(path: string) {
 
 async function request<T>(method: string, path: string, body?: any, options: RequestInit = {}): Promise<T> {
   const url = buildUrl(path)
-  const headers: HeadersInit = { ...(options.headers || {}) }
+  const headers = new Headers(options.headers as HeadersInit)
   let payload: BodyInit | undefined = undefined
 
   if (body instanceof FormData) {
     payload = body
   } else if (body !== undefined && body !== null) {
-    headers['Content-Type'] = 'application/json'
+    headers.set('Content-Type', 'application/json')
     payload = JSON.stringify(body)
   }
 
   try {
-    const res = await fetch(url, { ...options, method, headers, body: payload })
+  const res = await fetch(url, { ...options, method, headers, body: payload })
 
     if (!res.ok) {
       let message = res.statusText

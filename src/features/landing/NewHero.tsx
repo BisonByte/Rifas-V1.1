@@ -19,7 +19,7 @@ export function NewHero() {
   useEffect(() => {
     // Cargar configuración del sitio (tolera {success,data} u arreglo legacy)
     get('/api/configuracion')
-      .then((json) => {
+      .then((json: any) => {
         const payload: any = json?.success ? json.data : json
         const configObj: Record<string, string> = {}
 

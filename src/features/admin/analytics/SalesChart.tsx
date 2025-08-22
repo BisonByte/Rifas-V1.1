@@ -12,8 +12,11 @@ export function SalesChart() {
   const [data, setData] = useState<Point[]>([])
 
   useEffect(() => {
-    get('/api/admin/analytics/ventas').then(res => {
-      if (res.success) setData(res.data)
+    get('/api/admin/analytics/ventas').then((res: unknown) => {
+      const payload = res as { success?: boolean; data?: Point[] }
+      if (payload && payload.success && Array.isArray(payload.data)) {
+        setData(payload.data)
+      }
     })
   }, [])
 

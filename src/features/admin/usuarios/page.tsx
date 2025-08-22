@@ -40,8 +40,8 @@ export default function UsuariosPage() {
   useEffect(() => {
     const fetchUsuarios = async () => {
       try {
-        const data = await get('/api/admin/usuarios', { cache: 'no-store' })
-        setUsuarios(data.data || [])
+        const data = await get('/api/admin/usuarios', { cache: 'no-store' }) as any
+        setUsuarios((data?.success ? data.data : data) || [])
       } catch (err: any) {
         setError(err.message || 'Error desconocido')
       } finally {

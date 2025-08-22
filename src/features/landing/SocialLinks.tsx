@@ -16,9 +16,9 @@ export function SocialLinks() {
 
   useEffect(() => {
     get('/api/redes-sociales')
-      .then(json => {
+      .then((json: any) => {
         const data = json?.success ? json.data : json
-        setRedes(data.filter((r: RedSocial) => r.activo))
+        setRedes(Array.isArray(data) ? data.filter((r: RedSocial) => r.activo) : [])
       })
       .catch(console.error)
   }, [])

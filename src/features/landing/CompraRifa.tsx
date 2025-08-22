@@ -86,13 +86,12 @@ export function CompraRifa() {
   useEffect(() => {
     const cargarRifas = async () => {
       try {
-        const data = await get('/api/rifas')
-        if (data.success) {
-          setRifas(data.data)
-          if (data.data.length > 0) {
-            setCurrentIndex(0)
-            setRifaSeleccionada(data.data[0])
-          }
+        const json = await get('/api/rifas') as any
+        const arr: any[] = (json?.success ? json.data : json) || []
+        setRifas(Array.isArray(arr) ? arr : [])
+        if (Array.isArray(arr) && arr.length > 0) {
+          setCurrentIndex(0)
+          setRifaSeleccionada(arr[0])
         }
       } catch (error) {
         console.error('Error cargando rifas:', error)
@@ -101,9 +100,9 @@ export function CompraRifa() {
 
     const cargarMetodosPago = async () => {
       try {
-        const json = await get('/api/metodos-pago')
+        const json = await get('/api/metodos-pago') as any
         const data = json?.success ? json.data : json
-        setMetodosPago(data)
+        setMetodosPago(Array.isArray(data) ? data : [])
       } catch (error) {
         console.error('Error cargando métodos de pago:', error)
       }
@@ -116,10 +115,10 @@ export function CompraRifa() {
 
     // Cargar configuración de moneda y colores desde configuracion pública
   useEffect(() => {
-    const loadSiteConfig = async () => {
+  const loadSiteConfig = async () => {
       try {
-        const json = await get('/api/configuracion')
-        const payload = json?.success ? json.data : json
+    const json = await get('/api/configuracion') as any
+    const payload = json?.success ? json.data : json
         const map: Record<string, string> = {}
         if (Array.isArray(payload)) {
           for (const item of payload) map[item.clave] = item.valor
@@ -143,11 +142,11 @@ export function CompraRifa() {
 
   // Cargar Top compradores por rifa actual (confirmados)
   useEffect(() => {
-    const loadTop = async () => {
+  const loadTop = async () => {
       if (!rifaSeleccionada) return
       try {
-        const data = await get(`/api/rifas/${rifaSeleccionada.id}/top-compradores`)
-        if (data?.success) setTopCompradores(data.data)
+    const data = await get(`/api/rifas/${rifaSeleccionada.id}/top-compradores`) as any
+    if (data?.success && Array.isArray(data.data)) setTopCompradores(data.data)
       } catch {}
     }
     loadTop()
@@ -200,9 +199,13 @@ export function CompraRifa() {
     if (rifaSeleccionada) {
       const cargarTickets = async () => {
         try {
-          const data = await get(`/api/rifas/${rifaSeleccionada.id}/tickets`)
-          if (data.success) {
-            setTickets(data.tickets)
+          const res = await get(`/api/rifas/${rifaSeleccionada.id}/tickets`) as any
+          if (res?.success && Array.isArray(res.tickets)) {
+            setTickets(res.tickets)
+          } else if (Array.isArray(res)) {
+            setTickets(res)
+          } else {
+            setTickets([])
           }
         } catch (error) {
           console.error('Error cargando tickets:', error)
@@ -330,7 +333,7 @@ export function CompraRifa() {
       const formData = new FormData()
       formData.append('file', file)
 
-      const result = await post('/api/upload', formData)
+      const result = await post('/api/upload', formData) as any
       
       if (result.success) {
         return result.url
@@ -390,7 +393,7 @@ export function CompraRifa() {
         }
       }
 
-      const result = await post('/api/compras', compraData)
+  const result = await post('/api/compras', compraData) as any
 
       if (result.success) {
         alert(`¡Compra reservada! Referencia: ${result.detalles.referencia}`)
@@ -404,9 +407,11 @@ export function CompraRifa() {
         setImagenComprobante(null)
         setPreviewImagen(null)
         // Recargar tickets
-        const ticketsData = await get(`/api/rifas/${rifaSeleccionada.id}/tickets`)
-        if (ticketsData.success) {
+        const ticketsData = await get(`/api/rifas/${rifaSeleccionada.id}/tickets`) as any
+        if (ticketsData?.success && Array.isArray(ticketsData.tickets)) {
           setTickets(ticketsData.tickets)
+        } else if (Array.isArray(ticketsData)) {
+          setTickets(ticketsData)
         }
       } else {
         alert(`Error: ${result.error}`)

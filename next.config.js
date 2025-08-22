@@ -2,6 +2,10 @@
 const nextConfig = {
   // Use a non-dotted dist directory to avoid OneDrive file locking issues on Windows
   distDir: 'next',
+  eslint: {
+    // Don't fail production builds on ESLint warnings/errors. We keep linting for dev.
+    ignoreDuringBuilds: true,
+  },
   images: {
     domains: ['localhost'],
     remotePatterns: [

@@ -21,8 +21,8 @@ export function AdminNotificationCenter() {
 
   useEffect(() => {
     get('/api/admin/notificaciones?limit=50')
-      .then(data => {
-        if (data.success) {
+      .then((data: any) => {
+        if (data?.success) {
           setNotifications(data.data || [])
         }
       })
@@ -44,8 +44,8 @@ export function AdminNotificationCenter() {
 
   useEffect(() => {
     get('/api/auth/me')
-      .then(data => {
-        if (data.success) {
+      .then((data: any) => {
+        if (data?.success) {
           setAdminId(data.user.id)
         }
       })

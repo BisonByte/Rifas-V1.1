@@ -18,12 +18,12 @@ export default function HomePage() {
   useEffect(() => {
     const loadStats = async () => {
       try {
-        const rifasResp = await get('/api/rifas')
+        const rifasResp = await get('/api/rifas') as any
         const rifas = rifasResp?.success ? rifasResp.data : rifasResp
         const firstRifa = Array.isArray(rifas) ? rifas[0] : null
         if (!firstRifa) return
-        const statsResp = await get(`/api/rifas/${firstRifa.id}/stats`)
-        if (statsResp?.success) setStats(statsResp.data)
+        const statsResp = await get(`/api/rifas/${firstRifa.id}/stats`) as any
+        if (statsResp?.success && statsResp.data) setStats(statsResp.data)
       } catch (error) {
         console.error('Error cargando estadísticas de tickets:', error)
       }
@@ -175,10 +175,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Links sociales flotantes */}
-        <Suspense fallback={<div />}>
-          <SocialLinks />
-        </Suspense>
+  {/* Links sociales flotantes removidos a petición */}
       </main>
 
   {/* Anchor para soporte */}

@@ -28,7 +28,7 @@ export default function RedesSocialesPage() {
   const cargarRedes = async () => {
     try {
       const data = await get('/api/admin/redes-sociales')
-      setRedes(data)
+      setRedes((data as any)?.success ? (data as any).data : (data as RedSocial[]))
     } catch (error) {
       console.error('Error cargando redes sociales:', error)
     } finally {
