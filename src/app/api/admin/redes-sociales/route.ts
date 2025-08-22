@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '@/lib/auth'
-import { GET as publicGet } from '../../redes-sociales/route'
 import { prisma } from '@/lib/prisma'
 
 export async function GET() {
@@ -12,7 +11,18 @@ export async function GET() {
     )
   }
 
-  return publicGet()
+  try {
+    const redes = await prisma.redSocial.findMany({
+      orderBy: { orden: 'asc' }
+    })
+    return NextResponse.json({ success: true, data: redes })
+  } catch (error) {
+    console.error('Error obteniendo redes sociales:', error)
+    return NextResponse.json(
+      { success: false, error: 'Error obteniendo redes sociales' },
+      { status: 500 }
+    )
+  }
 }
 
 export async function POST(request: NextRequest) {
