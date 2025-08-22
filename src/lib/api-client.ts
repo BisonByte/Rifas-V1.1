@@ -11,7 +11,8 @@ function buildUrl(path: string) {
 
 async function request<T>(method: string, path: string, body?: any, options: RequestInit = {}): Promise<T> {
   const url = buildUrl(path)
-  const headers = new Headers(options.headers as HeadersInit)
+  const { credentials = 'include', headers: initHeaders, ...rest } = options
+  const headers = new Headers(initHeaders as HeadersInit)
   let payload: BodyInit | undefined = undefined
 
   if (body instanceof FormData) {
@@ -22,7 +23,13 @@ async function request<T>(method: string, path: string, body?: any, options: Req
   }
 
   try {
-  const res = await fetch(url, { ...options, method, headers, body: payload })
+    const res = await fetch(url, {
+      ...rest,
+      method,
+      headers,
+      body: payload,
+      credentials,
+    })
 
     if (!res.ok) {
       let message = res.statusText
