@@ -1,5 +1,7 @@
 'use client'
 
+import { sanitizeHtml } from '@/lib/sanitize'
+
 interface DescriptionProps {
   descripcionHtml?: string
 }
@@ -115,19 +117,16 @@ export function Description({ descripcionHtml }: DescriptionProps) {
     </div>
   `
 
+  const html = descripcionHtml
+    ? sanitizeHtml(descripcionHtml)
+    : defaultDescription
+
   return (
     <div className="max-w-6xl mx-auto">
-      {descripcionHtml ? (
-        <div 
-          className="prose prose-lg max-w-none"
-          dangerouslySetInnerHTML={{ __html: descripcionHtml }}
-        />
-      ) : (
-        <div 
-          className="prose prose-lg max-w-none"
-          dangerouslySetInnerHTML={{ __html: defaultDescription }}
-        />
-      )}
+      <div
+        className="prose prose-lg max-w-none"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
     </div>
   )
 }

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { TicketVerifier } from '@/features/landing/TicketVerifier'
 import { get } from '@/lib/api-client'
+import { sanitizeHtml } from '@/lib/sanitize'
 
 type SiteConfig = Record<string, any>
 
@@ -163,7 +164,9 @@ export function FloatingSupportButtons() {
           {config.ayuda_texto_html ? (
             <div
               className="prose prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: String(config.ayuda_texto_html) }}
+              dangerouslySetInnerHTML={{
+                __html: sanitizeHtml(String(config.ayuda_texto_html)),
+              }}
             />
           ) : !config.ayuda_video_url ? (
             <div className="text-sm text-white/90 space-y-2">
