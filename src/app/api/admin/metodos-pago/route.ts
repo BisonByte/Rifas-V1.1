@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '@/lib/auth'
-import { GET as publicGet } from '../../metodos-pago/route'
 import { prisma } from '@/lib/prisma'
 
 export async function GET() {
@@ -12,7 +11,19 @@ export async function GET() {
     )
   }
 
-  return publicGet()
+  try {
+    const metodos = await prisma.metodoPago.findMany({
+      orderBy: { orden: 'asc' }
+    })
+
+    return NextResponse.json({ success: true, data: metodos })
+  } catch (error) {
+    console.error('Error obteniendo métodos de pago:', error)
+    return NextResponse.json(
+      { success: false, error: 'Error obteniendo métodos de pago' },
+      { status: 500 }
+    )
+  }
 }
 
 export async function POST(request: NextRequest) {

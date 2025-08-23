@@ -308,7 +308,7 @@ export default function MetodosPagoPage() {
                     onClick={() => toggleActivo(metodo.id, !metodo.activo)}
                     className={`text-xs px-2 py-1 rounded-md border backdrop-blur-sm ${metodo.activo ? 'bg-white/20 text-white border-white/20' : 'bg-slate-800/50 text-slate-300 border-slate-600/40'}`}
                   >
-                    {metodo.activo ? 'Activo' : 'Inactivo'}
+                    {metodo.activo ? 'Desactivar' : 'Reactivar'}
                   </button>
                 </div>
               </div>
