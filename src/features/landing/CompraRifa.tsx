@@ -583,6 +583,14 @@ export function CompraRifa() {
 
   const hasMultipleRifas = rifas.length > 1
 
+  // Previews for adjacent raffles
+  const prevPreview = hasMultipleRifas
+    ? rifas[(currentIndex - 1 + rifas.length) % rifas.length]
+    : null
+  const nextPreview = hasMultipleRifas
+    ? rifas[(currentIndex + 1) % rifas.length]
+    : null
+
   const nextRifa = () => {
     if (!hasMultipleRifas || switching) return
     setSwitching(true)
@@ -621,6 +629,25 @@ export function CompraRifa() {
     }, 180)
   }
 
+  const RifaPeek = ({ rifa }: { rifa: Rifa }) => (
+    <div className="relative bg-red-700/80 rounded-xl p-4 border border-red-600/50 backdrop-blur-sm">
+      {rifa.portadaUrl && (
+        <div className="mb-2">
+          <div className="rounded-2xl overflow-hidden aspect-[3/4]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={rifa.portadaUrl}
+              alt={`Portada de ${rifa.nombre}`}
+              className="w-full h-full object-contain"
+              loading="lazy"
+            />
+          </div>
+        </div>
+      )}
+      <h3 className="text-sm font-bold text-yellow-300 text-center">{rifa.nombre}</h3>
+    </div>
+  )
+
   return (
     <div className="relative mx-auto lg:max-w-6xl xl:max-w-[88rem] 2xl:max-w-[96rem] px-3 sm:px-4 lg:px-6" ref={containerRef}>
       {/* Navegación entre rifas: solo mostrar si hay más de una rifa activa */}
@@ -655,7 +682,18 @@ export function CompraRifa() {
         </>
       )}
 
-  <div className={`space-y-5 sm:space-y-6 ${animClass}`}>
+  <div className={`relative overflow-hidden ${animClass}`}>
+    {hasMultipleRifas && prevPreview && (
+      <div className="absolute inset-0 -translate-x-[60%] opacity-50 pointer-events-none z-0">
+        <RifaPeek rifa={prevPreview} />
+      </div>
+    )}
+    {hasMultipleRifas && nextPreview && (
+      <div className="absolute inset-0 translate-x-[60%] opacity-50 pointer-events-none z-0">
+        <RifaPeek rifa={nextPreview} />
+      </div>
+    )}
+    <div className="relative z-10 space-y-5 sm:space-y-6">
     {/* Información de la rifa */}
   <div className="relative bg-red-700/80 rounded-xl p-4 border border-red-600/50 backdrop-blur-sm lg:max-w-4xl lg:mx-auto">
           {/* Imagen de portada si existe */}
@@ -1244,6 +1282,7 @@ export function CompraRifa() {
           </div>
         </div>
       )}
+    </div>
     </div>
   </div>
   )
