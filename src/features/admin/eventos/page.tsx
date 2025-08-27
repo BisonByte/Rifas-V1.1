@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import { get, post, del } from '@/lib/api-client'
-import type { ApiResponse } from '@/types'
+import type { ApiResponse, Rifa } from '@/types'
 import { AdminHeader } from '@/features/admin/ui/AdminHeader'
 import { AdminSection } from '@/features/admin/ui/AdminSection'
 import {
@@ -116,7 +116,7 @@ export default function EventosPage() {
   const publicarRifa = async (id: string) => {
     try {
       setPublishing(id)
-      const res = await post<any>(`/api/admin/rifas/${id}/publicar`)
+        const res = await post<ApiResponse<Rifa>>(`/api/admin/rifas/${id}/publicar`)
       if (!res?.success) throw new Error(res?.error || 'No se pudo publicar')
       // Refrescar estado local a ACTIVO
       setEventos((prev) => prev.map(e => e.id === id ? { ...e, estado: 'ACTIVO' } : e))
