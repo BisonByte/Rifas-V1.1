@@ -6,6 +6,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { formatCurrencyFlexible } from '@/lib/utils'
 import { get, post, HttpError } from '@/lib/api-client'
 import { PaymentMethods } from '@/features/landing/PaymentMethods'
+import { EstadoTicket } from '@prisma/client'
 
 interface Rifa {
   id: string
@@ -21,7 +22,7 @@ interface Rifa {
 
 interface Ticket {
   numero: number
-  estado: 'DISPONIBLE' | 'RESERVADO' | 'VENDIDO'
+  estado: EstadoTicket
   participante?: { nombre: string } | null
 }
 
@@ -266,9 +267,9 @@ export function CompraRifa() {
   }, [rifaSeleccionada])
 
   // Utilidades de cantidad
-  const disponiblesCount = tickets.filter(t => t.estado === 'DISPONIBLE').length
-  const reservadosCount = tickets.filter(t => t.estado === 'RESERVADO').length
-  const vendidosCount = tickets.filter(t => t.estado === 'VENDIDO').length
+  const disponiblesCount = tickets.filter(t => t.estado === EstadoTicket.DISPONIBLE).length
+  const reservadosCount = tickets.filter(t => t.estado === EstadoTicket.RESERVADO).length
+  const vendidosCount = tickets.filter(t => t.estado === EstadoTicket.VENDIDO).length
   // Sin límite por persona: máximo permitido es lo disponible
   const maxPermitido = disponiblesCount
 

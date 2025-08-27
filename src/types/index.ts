@@ -1,3 +1,13 @@
+import {
+  RolUsuario,
+  EstadoRifa,
+  EstadoTicket,
+  EstadoPago,
+  EstadoSorteo,
+} from '@prisma/client'
+
+export { RolUsuario, EstadoRifa, EstadoTicket, EstadoPago, EstadoSorteo }
+
 export interface RifaConfig {
   [key: string]: unknown
 }
@@ -174,45 +184,15 @@ export interface AuditLog {
   usuario?: Usuario
 }
 
-// Enums
-export enum RolUsuario {
-  SUPER_ADMIN = 'SUPER_ADMIN',
-  ADMIN = 'ADMIN',
-  VENDEDOR = 'VENDEDOR',
-  AUDITOR = 'AUDITOR'
-}
+import {
+  RolUsuario,
+  EstadoRifa,
+  EstadoTicket,
+  EstadoPago,
+  EstadoSorteo,
+} from '@prisma/client'
 
-export enum EstadoRifa {
-  BORRADOR = 'BORRADOR',
-  ACTIVA = 'ACTIVA',
-  PAUSADA = 'PAUSADA',
-  FINALIZADA = 'FINALIZADA',
-  CANCELADA = 'CANCELADA'
-}
-
-export enum EstadoTicket {
-  DISPONIBLE = 'DISPONIBLE',
-  RESERVADO = 'RESERVADO',
-  PENDIENTE_PAGO = 'PENDIENTE_PAGO',
-  PAGADO = 'PAGADO',
-  RECHAZADO = 'RECHAZADO',
-  CADUCADO = 'CADUCADO',
-  GANADOR = 'GANADOR'
-}
-
-export enum EstadoPago {
-  PENDIENTE = 'PENDIENTE',
-  APROBADO = 'APROBADO',
-  RECHAZADO = 'RECHAZADO',
-  CANCELADO = 'CANCELADO'
-}
-
-export enum EstadoSorteo {
-  PENDIENTE = 'PENDIENTE',
-  EN_PROCESO = 'EN_PROCESO',
-  COMPLETADO = 'COMPLETADO',
-  CANCELADO = 'CANCELADO'
-}
+export { RolUsuario, EstadoRifa, EstadoTicket, EstadoPago, EstadoSorteo }
 
 // Tipos de respuesta de API
 export interface ApiResponse<T = unknown> {

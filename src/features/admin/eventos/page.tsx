@@ -23,6 +23,7 @@ import {
   Users,
   Ticket
 } from 'lucide-react'
+import { EstadoRifa } from '@prisma/client'
 
 interface Evento {
   id: string
@@ -81,9 +82,9 @@ export default function EventosPage() {
           fechaInicio: r.createdAt,
           fechaFin: r.fechaSorteo,
           fechaSorteo: r.fechaSorteo,
-          estado: r.estado === 'ACTIVA'
+          estado: r.estado === EstadoRifa.ACTIVA
             ? 'ACTIVO'
-            : r.estado === 'FINALIZADA'
+            : r.estado === EstadoRifa.SORTEADA
               ? 'FINALIZADO'
               : 'INACTIVO',
           participantes: r._count?.tickets ?? 0,

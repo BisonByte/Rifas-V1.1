@@ -3,8 +3,70 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+enum RolUsuario {
+  SUPER_ADMIN
+  ADMIN
+  VENDEDOR
+  AUDITOR
+}
+
+enum EstadoRifa {
+  BORRADOR
+  ACTIVA
+  PAUSADA
+  SORTEADA
+  CANCELADA
+}
+
+enum EstadoTicket {
+  DISPONIBLE
+  RESERVADO
+  EN_VERIFICACION
+  PENDIENTE_PAGO
+  VENDIDO
+  PAGADO
+  RECHAZADO
+  CADUCADO
+  GANADOR
+}
+
+enum EstadoPago {
+  PENDIENTE
+  EN_VERIFICACION
+  CONFIRMADO
+  PAGADO
+  RECHAZADO
+  CANCELADO
+}
+
+enum EstadoSorteo {
+  PENDIENTE
+  EN_PROCESO
+  COMPLETADO
+  CANCELADO
+}
+
+enum MetodoSorteo {
+  AUTOMATICO
+  MANUAL
+}
+
+enum TipoNotificacion {
+  INFO
+  WARNING
+  ERROR
+  SUCCESS
+}
+
+enum TipoConfiguracion {
+  STRING
+  NUMBER
+  BOOLEAN
+  JSON
 }
 
 model Usuario {
@@ -13,7 +75,7 @@ model Usuario {
   email     String   @unique
   celular   String?
   password  String
-  rol       String   @default("VENDEDOR")
+  rol       RolUsuario @default(VENDEDOR)
   activo    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -32,7 +94,7 @@ model Rifa {
   precioPorBoleto Float     
   totalBoletos    Int
   limitePorPersona Int?       @default(10)
-  estado          String      @default("BORRADOR")
+  estado          EstadoRifa  @default(BORRADOR)
   tiempoReserva   Int         @default(30)
   mostrarTopCompradores Boolean @default(false)
   
@@ -86,7 +148,7 @@ model Ticket {
   rifaId          String
   participanteId  String?
   compraId        String?
-  estado          String        @default("DISPONIBLE")
+  estado          EstadoTicket  @default(DISPONIBLE)
   monto           Float?      
   fechaReserva    DateTime?
   fechaVencimiento DateTime?
@@ -114,7 +176,7 @@ model Compra {
   monto           Float        // Monto unitario por ticket
   montoTotal      Float        // Campo calculado (monto * cantidadTickets)
   metodoPago      String       @default("TRANSFERENCIA")
-  estadoPago      String       @default("PENDIENTE")
+  estadoPago      EstadoPago   @default(PENDIENTE)
   voucherUrl      String?
   imagenComprobante String?    // URL de la imagen del comprobante
   bancoId         String?
@@ -155,7 +217,8 @@ model Sorteo {
   rifaId          String   @unique
   numeroGanador   Int?
   ticketGanadorId String?  @unique
-  metodo          String   @default("AUTOMATICO") // AUTOMATICO, MANUAL
+  metodo          MetodoSorteo @default(AUTOMATICO)
+  estado          EstadoSorteo @default(PENDIENTE)
   semilla         String?  // Para reproducibilidad
   fechaSorteo     DateTime @default(now())
   fechaHora       DateTime @default(now()) // Alias para fechaSorteo (compatibilidad)
@@ -172,7 +235,7 @@ model Sorteo {
 
 model Notificacion {
   id                  String    @id @default(cuid())
-  tipo                String    // INFO, WARNING, ERROR, SUCCESS
+  tipo                TipoNotificacion
   titulo              String
   mensaje             String
   leida               Boolean   @default(false)
@@ -214,7 +277,7 @@ model Configuracion {
   clave       String   @unique
   valor       String
   descripcion String?
-  tipo        String   @default("STRING") // STRING, NUMBER, BOOLEAN, JSON
+  tipo        TipoConfiguracion @default(STRING)
   categoria   String   @default("GENERAL")
 
   createdAt   DateTime @default(now())

@@ -4,6 +4,7 @@ import { NextRequest } from 'next/server'
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import { prisma } from './prisma'
+import { RolUsuario } from '@prisma/client'
 
 // Configuración JWT
 if (!process.env.JWT_SECRET) {
@@ -17,14 +18,14 @@ export interface AuthUser {
   id: string
   nombre: string
   email: string
-  rol: 'SUPER_ADMIN' | 'ADMIN' | 'VENDEDOR' | 'AUDITOR'
+  rol: RolUsuario
 }
 
 export interface JWTPayload {
   sub: string
   nombre: string
   email: string
-  rol: string
+  rol: RolUsuario
   tokenType: 'access' | 'refresh'
   iat: number
   exp: number
@@ -102,6 +103,7 @@ export async function verifyJWT(token: string): Promise<JWTPayload | null> {
       typeof payload.nombre === 'string' &&
       typeof payload.email === 'string' &&
       typeof payload.rol === 'string' &&
+      Object.values(RolUsuario).includes(payload.rol as RolUsuario) &&
       (payload.tokenType === 'access' || payload.tokenType === 'refresh') &&
       typeof payload.iat === 'number' &&
       typeof payload.exp === 'number'
@@ -137,7 +139,7 @@ export async function getAuthUser(): Promise<AuthUser | null> {
       id: payload.sub,
       nombre: payload.nombre,
       email: payload.email,
-      rol: payload.rol as 'SUPER_ADMIN' | 'ADMIN' | 'VENDEDOR' | 'AUDITOR'
+      rol: payload.rol as RolUsuario
     }
   } catch (error) {
     console.error('Error obteniendo usuario autenticado:', error)
@@ -175,7 +177,7 @@ export async function verifyCredentials(email: string, password: string): Promis
       id: usuario.id,
       nombre: usuario.nombre,
       email: usuario.email,
-      rol: usuario.rol as 'SUPER_ADMIN' | 'ADMIN' | 'VENDEDOR' | 'AUDITOR'
+      rol: usuario.rol as RolUsuario
     }
   } catch (error) {
     console.error('Error verificando credenciales:', error)
@@ -228,14 +230,14 @@ export async function requireAuth(request: NextRequest): Promise<AuthUser | null
     id: payload.sub,
     nombre: payload.nombre,
     email: payload.email,
-      rol: payload.rol as 'SUPER_ADMIN' | 'ADMIN' | 'VENDEDOR' | 'AUDITOR'
+    rol: payload.rol as RolUsuario,
   }
 }
 
 /**
  * Verifica si el usuario tiene el rol requerido
  */
-export function hasRole(user: AuthUser, requiredRole: string | string[]): boolean {
+export function hasRole(user: AuthUser, requiredRole: RolUsuario | RolUsuario[]): boolean {
   if (Array.isArray(requiredRole)) {
     return requiredRole.includes(user.rol)
   }
@@ -246,14 +248,14 @@ export function hasRole(user: AuthUser, requiredRole: string | string[]): boolea
  * Verifica si el usuario es administrador
  */
 export function isAdmin(user: AuthUser): boolean {
-  return user.rol === 'ADMIN' || user.rol === 'SUPER_ADMIN'
+  return user.rol === RolUsuario.ADMIN || user.rol === RolUsuario.SUPER_ADMIN
 }
 
 /**
  * Verifica si el usuario es super administrador
  */
 export function isSuperAdmin(user: AuthUser): boolean {
-  return user.rol === 'SUPER_ADMIN'
+  return user.rol === RolUsuario.SUPER_ADMIN
 }
 
 /**
