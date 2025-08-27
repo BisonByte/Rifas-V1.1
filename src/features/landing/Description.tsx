@@ -41,7 +41,7 @@ export function Description({ descripcionHtml }: DescriptionProps) {
           <div class="space-y-3 text-sm">
             <div class="flex justify-between">
               <span class="font-medium">Precio por boleto:</span>
-              <span class="font-bold text-green-600">$10 USD</span>
+              <span class="font-bold text-green-600">Bs.10 VES</span>
             </div>
             <div class="flex justify-between">
               <span class="font-medium">Total de boletos:</span>
@@ -76,7 +76,7 @@ export function Description({ descripcionHtml }: DescriptionProps) {
           <div class="bg-gradient-to-r from-yellow-100 to-yellow-200 p-6 rounded-lg">
             <div class="text-4xl mb-2">🥇</div>
             <h4 class="font-bold">Primer Premio</h4>
-            <p class="text-sm text-gray-600">iPhone 15 Pro Max + $500 USD</p>
+            <p class="text-sm text-gray-600">iPhone 15 Pro Max + Bs.500 VES</p>
           </div>
           <div class="bg-gradient-to-r from-gray-100 to-gray-200 p-6 rounded-lg">
             <div class="text-4xl mb-2">🥈</div>

@@ -125,8 +125,8 @@ export default function ConfiguracionPage() {
   ]
 
   const configuracionesMoneda: Array<{ clave: string; nombre: string; tipo: string; options?: { value: string; label: string }[] }> = [
-    { clave: 'currency_code', nombre: 'Código ISO (ej: VES, USD)', tipo: 'text' },
-    { clave: 'currency_symbol', nombre: 'Símbolo (ej: BsS, $)', tipo: 'text' },
+    { clave: 'currency_code', nombre: 'Código ISO (ej: VES)', tipo: 'text' },
+    { clave: 'currency_symbol', nombre: 'Símbolo (ej: Bs., $)', tipo: 'text' },
     { clave: 'currency_locale', nombre: 'Locale (ej: es-VE, es-ES)', tipo: 'text' },
     { clave: 'currency_position', nombre: 'Posición del símbolo', tipo: 'select', options: [
       { value: 'prefix', label: 'Prefijo (símbolo antes)' },
@@ -218,9 +218,9 @@ export default function ConfiguracionPage() {
             <div className="text-2xl font-bold text-slate-100 mt-1">
               {formatCurrencyFlexible(12345.67, {
                 code: editedConfig['currency_code'] || 'VES',
-                symbol: editedConfig['currency_symbol'] || 'BsS',
+                symbol: editedConfig['currency_symbol'] || 'Bs.',
                 locale: editedConfig['currency_locale'] || 'es-VE',
-                position: (editedConfig['currency_position'] as any) || 'suffix',
+                position: (editedConfig['currency_position'] as any) || 'prefix',
               })}
             </div>
           </div>

@@ -19,7 +19,7 @@ export default function NuevoEventoPage() {
     totalBoletos: 100,
     limitePorPersona: 10,
     tiempoReserva: 30,
-    moneda: 'USD',
+    moneda: 'VES',
     zonaHoraria: 'UTC',
     portadaUrl: ''
   })

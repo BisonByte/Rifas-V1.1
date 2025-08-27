@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/Input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { VerificacionSchema, type VerificacionData } from '@/lib/validations'
-import { formatDate, formatPhone } from '@/lib/utils'
+import { formatDate, formatPhone, formatCurrencyFlexible } from '@/lib/utils'
 import { EstadoTicket } from '@/types'
 
 export function TicketVerifier() {
@@ -49,7 +49,7 @@ export function TicketVerifier() {
           },
           fechaCompra: new Date(),
           monto: 10,
-          moneda: 'USD'
+          moneda: 'VES'
         },
         tickets: data.tipo === 'celular' ? [
           {
@@ -216,7 +216,7 @@ export function TicketVerifier() {
                         </div>
                         <div>
                           <span className="font-medium">Monto:</span>
-                          <p>${result.ticket.monto} {result.ticket.moneda}</p>
+                          <p>{formatCurrencyFlexible(result.ticket.monto)} {result.ticket.moneda}</p>
                         </div>
                       </div>
 
@@ -248,7 +248,7 @@ export function TicketVerifier() {
                                 Ticket #{ticket.numero.toString().padStart(3, '0')}
                               </span>
                               <p className="text-xs text-gray-500">
-                                {formatDate(ticket.fechaCompra)} - ${ticket.monto} USD
+                                {formatDate(ticket.fechaCompra)} - {formatCurrencyFlexible(ticket.monto)} VES
                               </p>
                             </div>
                             {getEstadoBadge(ticket.estado)}

@@ -25,17 +25,17 @@ async function seedConfiguration() {
       },
       {
         clave: 'hero_titulo',
-        valor: '1000$',
+        valor: '1000 Bs.',
         tipo: 'text'
       },
       {
         clave: 'hero_subtitulo',
-        valor: 'X 40BS',
+        valor: 'X 40 Bs.',
         tipo: 'text'
       },
       {
         clave: 'hero_descripcion',
-        valor: 'TOP 1 150$ GANA CON JESÚS',
+        valor: 'TOP 1 150 Bs. GANA CON JESÚS',
         tipo: 'text'
       },
       {

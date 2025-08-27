@@ -232,7 +232,7 @@ export default function MetodosPagoPage() {
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-slate-300 uppercase tracking-wide">Moneda</label>
                 <Input
-                  placeholder="BTC, ETH, USDT, BNB, etc."
+                  placeholder="BTC, ETH, Tether, BNB, etc."
                   value={datosObj.moneda || ''}
                   onChange={(e) => updateDatos('moneda', e.target.value)}
                   className={inputClass}
