@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/badge'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
-import { get } from '@/lib/api-client'
+import { get, del } from '@/lib/api-client'
 import { AdminHeader } from '@/features/admin/ui/AdminHeader'
 import { AdminSection } from '@/features/admin/ui/AdminSection'
 import { 
@@ -37,9 +38,14 @@ interface UsuarioUI {
 }
 
 export default function UsuariosPage() {
+  const router = useRouter()
   const [usuarios, setUsuarios] = useState<UsuarioUI[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [actionMessage, setActionMessage] = useState<
+    { type: 'success' | 'error'; text: string } | null
+  >(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchUsuarios = async () => {
@@ -141,6 +147,27 @@ export default function UsuariosPage() {
     SUSPENDIDO: usuarios.filter(u => u.estado === 'SUSPENDIDO').length
   }
 
+  const crearUsuario = () => router.push('/admin/usuarios/nuevo')
+
+  const verUsuario = (id: string) => router.push(`/admin/usuarios/${id}`)
+
+  const editarUsuario = (id: string) => router.push(`/admin/usuarios/${id}/editar`)
+
+  const eliminarUsuario = async (id: string) => {
+    if (!confirm('¿Eliminar usuario?')) return
+    setDeletingId(id)
+    setActionMessage(null)
+    try {
+      await del(`/api/admin/usuarios?id=${id}`)
+      setUsuarios(prev => prev.filter(u => u.id !== id))
+      setActionMessage({ type: 'success', text: 'Usuario eliminado' })
+    } catch (err: any) {
+      setActionMessage({ type: 'error', text: err.message || 'Error al eliminar' })
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
   return (
   <div className="space-y-6">
       {error && (
@@ -150,12 +177,19 @@ export default function UsuariosPage() {
         </Alert>
       )}
 
+      {actionMessage && (
+        <Alert variant={actionMessage.type === 'error' ? 'destructive' : 'default'}>
+          <AlertTitle>{actionMessage.type === 'error' ? 'Error' : 'Éxito'}</AlertTitle>
+          <AlertDescription>{actionMessage.text}</AlertDescription>
+        </Alert>
+      )}
+
       {/* Header */}
       <AdminHeader
         title="👥 Gestión de Usuarios"
         description="Administra los usuarios del sistema"
         right={(
-          <Button className="bg-teal-600 hover:bg-teal-700 text-white btn-shine">
+          <Button onClick={crearUsuario} className="bg-teal-600 hover:bg-teal-700 text-white btn-shine">
             <UserPlus className="h-4 w-4 mr-2" />
             Nuevo Usuario
           </Button>
@@ -337,16 +371,36 @@ export default function UsuariosPage() {
 
                     {/* Acciones */}
                     <div className="flex gap-2 pt-2">
-                      <Button size="sm" variant="outline" className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700"
+                        onClick={() => verUsuario(usuario.id)}
+                      >
                         <Eye className="h-4 w-4 mr-2" />
                         Ver
                       </Button>
-                      <Button size="sm" variant="outline" className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700"
+                        onClick={() => editarUsuario(usuario.id)}
+                      >
                         <Edit className="h-4 w-4 mr-2" />
                         Editar
                       </Button>
-                      <Button size="sm" variant="outline" className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white">
-                        <Trash2 className="h-4 w-4" />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
+                        onClick={() => eliminarUsuario(usuario.id)}
+                        disabled={deletingId === usuario.id}
+                      >
+                        {deletingId === usuario.id ? (
+                          <LoadingSpinner className="h-4 w-4" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
                       </Button>
                     </div>
                   </CardContent>

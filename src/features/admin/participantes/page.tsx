@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/badge'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
-import { get } from '@/lib/api-client'
+import { get, del } from '@/lib/api-client'
 import { AdminHeader } from '@/features/admin/ui/AdminHeader'
 import { AdminSection } from '@/features/admin/ui/AdminSection'
 import { 
@@ -37,9 +38,14 @@ interface Participante {
 }
 
 export default function ParticipantesPage() {
+  const router = useRouter()
   const [participantes, setParticipantes] = useState<Participante[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [actionMessage, setActionMessage] = useState<
+    { type: 'success' | 'error'; text: string } | null
+  >(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchParticipantes = async () => {
@@ -108,6 +114,27 @@ export default function ParticipantesPage() {
     currentPage * itemsPerPage
   )
 
+  const crearParticipante = () => router.push('/admin/participantes/nuevo')
+
+  const verParticipante = (id: string) => router.push(`/admin/participantes/${id}`)
+
+  const editarParticipante = (id: string) => router.push(`/admin/participantes/${id}/editar`)
+
+  const eliminarParticipante = async (id: string) => {
+    if (!confirm('¿Eliminar participante?')) return
+    setDeletingId(id)
+    setActionMessage(null)
+    try {
+      await del(`/api/admin/participantes?id=${id}`)
+      setParticipantes(prev => prev.filter(p => p.id !== id))
+      setActionMessage({ type: 'success', text: 'Participante eliminado' })
+    } catch (err: any) {
+      setActionMessage({ type: 'error', text: err.message || 'Error al eliminar' })
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
   return (
   <div className="space-y-6">
       {error && (
@@ -116,12 +143,19 @@ export default function ParticipantesPage() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
+      {actionMessage && (
+        <Alert variant={actionMessage.type === 'error' ? 'destructive' : 'default'}>
+          <AlertTitle>{actionMessage.type === 'error' ? 'Error' : 'Éxito'}</AlertTitle>
+          <AlertDescription>{actionMessage.text}</AlertDescription>
+        </Alert>
+      )}
+
       {/* Header */}
       <AdminHeader
         title="🧑‍🤝‍🧑 Gestión de Participantes"
         description="Administra todos los participantes del sistema"
         right={(
-          <Button className="bg-teal-600 hover:bg-teal-700 text-white">
+          <Button onClick={crearParticipante} className="bg-teal-600 hover:bg-teal-700 text-white">
             <UserPlus className="h-4 w-4 mr-2" />
             Nuevo Participante
           </Button>
@@ -285,14 +319,34 @@ export default function ParticipantesPage() {
                     </td>
                     <td className="p-4">
                       <div className="flex gap-1">
-                        <Button size="sm" variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700 p-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-gray-600 text-gray-300 hover:bg-gray-700 p-2"
+                          onClick={() => verParticipante(participante.id)}
+                        >
                           <Eye className="h-3 w-3" />
                         </Button>
-                        <Button size="sm" variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700 p-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-gray-600 text-gray-300 hover:bg-gray-700 p-2"
+                          onClick={() => editarParticipante(participante.id)}
+                        >
                           <Edit className="h-3 w-3" />
                         </Button>
-                        <Button size="sm" variant="outline" className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white p-2">
-                          <Trash2 className="h-3 w-3" />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white p-2"
+                          onClick={() => eliminarParticipante(participante.id)}
+                          disabled={deletingId === participante.id}
+                        >
+                          {deletingId === participante.id ? (
+                            <LoadingSpinner className="h-3 w-3" />
+                          ) : (
+                            <Trash2 className="h-3 w-3" />
+                          )}
                         </Button>
                       </div>
                     </td>
