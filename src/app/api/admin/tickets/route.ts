@@ -10,7 +10,9 @@ export const dynamic = 'force-dynamic'
 const QuerySchema = z.object({
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(20),
-  rifaId: z.string().optional(),
+  // When provided, filter tickets belonging to the specified raffle
+  // Using cuid validation to match the Rifa model id type
+  rifaId: z.string().cuid().optional(),
   estado: z.string().optional(),
   search: z.string().optional()
 })

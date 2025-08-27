@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import { get } from '@/lib/api-client'
-import { PaginatedResponse } from '@/types'
+import { PaginatedResponse, Rifa } from '@/types'
 import { AdminHeader } from '@/features/admin/ui/AdminHeader'
 import { AdminSection } from '@/features/admin/ui/AdminSection'
 import {
@@ -33,6 +33,8 @@ interface TicketData {
 }
 
 export default function TicketsPage() {
+  const [rifas, setRifas] = useState<Rifa[]>([])
+  const [selectedRifa, setSelectedRifa] = useState('')
   const [tickets, setTickets] = useState<TicketData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -40,17 +42,45 @@ export default function TicketsPage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const limit = 10
-  const [stats, setStats] = useState({ total: 0, activos: 0, ganadores: 0, usados: 0 })
+  const [stats, setStats] = useState({
+    disponibles: 0,
+    vendidos: 0,
+    reservados: 0,
+    ganadores: 0,
+  })
+
+  // Load available raffles for selection
+  useEffect(() => {
+    const fetchRifas = async () => {
+      try {
+        const res = await get<PaginatedResponse<Rifa>>('/api/rifas?limit=100', {
+          cache: 'no-store',
+        })
+        if (res.success && res.data) {
+          setRifas(res.data)
+          if (res.data.length > 0) {
+            setSelectedRifa(res.data[0].id)
+          }
+        } else if (!res.success) {
+          throw new Error(res.error || 'Error al cargar rifas')
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error al cargar rifas')
+      }
+    }
+    fetchRifas()
+  }, [])
 
   useEffect(() => {
     const fetchTickets = async () => {
+      if (!selectedRifa) return
       setLoading(true)
       setError(null)
       try {
-        const data = await get<PaginatedResponse<TicketData>>(
-          `/api/admin/tickets?page=${page}&limit=${limit}&search=${encodeURIComponent(searchTerm)}`,
-          { cache: 'no-store' }
-        )
+        const url = `/api/admin/tickets?page=${page}&limit=${limit}&search=${encodeURIComponent(
+          searchTerm
+        )}&rifaId=${selectedRifa}`
+        const data = await get<PaginatedResponse<TicketData>>(url, { cache: 'no-store' })
         if (!data?.success) {
           throw new Error(data?.error || 'Error al cargar tickets')
         }
@@ -64,35 +94,46 @@ export default function TicketsPage() {
     }
 
     fetchTickets()
-  }, [page, searchTerm])
+  }, [page, searchTerm, selectedRifa])
 
   useEffect(() => {
     const fetchStats = async () => {
+      if (!selectedRifa) return
       try {
-        const [totalRes, activosRes, ganadoresRes] = await Promise.all([
-          get<PaginatedResponse<TicketData>>('/api/admin/tickets?limit=1', { cache: 'no-store' }),
-          get<PaginatedResponse<TicketData>>('/api/admin/tickets?estado=DISPONIBLE&limit=1', {
-            cache: 'no-store'
-          }),
-          get<PaginatedResponse<TicketData>>('/api/admin/tickets?estado=GANADOR&limit=1', {
-            cache: 'no-store'
-          })
+        const [dispRes, vendRes, resRes, ganRes] = await Promise.all([
+          get<PaginatedResponse<TicketData>>(
+            `/api/admin/tickets?rifaId=${selectedRifa}&estado=DISPONIBLE&limit=1`,
+            { cache: 'no-store' }
+          ),
+          get<PaginatedResponse<TicketData>>(
+            `/api/admin/tickets?rifaId=${selectedRifa}&estado=PAGADO&limit=1`,
+            { cache: 'no-store' }
+          ),
+          get<PaginatedResponse<TicketData>>(
+            `/api/admin/tickets?rifaId=${selectedRifa}&estado=RESERVADO&limit=1`,
+            { cache: 'no-store' }
+          ),
+          get<PaginatedResponse<TicketData>>(
+            `/api/admin/tickets?rifaId=${selectedRifa}&estado=GANADOR&limit=1`,
+            { cache: 'no-store' }
+          ),
         ])
-        if (!totalRes.success || !activosRes.success || !ganadoresRes.success) {
+        if (!dispRes.success || !vendRes.success || !resRes.success || !ganRes.success) {
           throw new Error('Error al cargar estadísticas de tickets')
         }
-        const total = totalRes.pagination.total
-        const activos = activosRes.pagination.total
-        const ganadores = ganadoresRes.pagination.total
-        const usados = total - activos - ganadores
-        setStats({ total, activos, ganadores, usados })
+        setStats({
+          disponibles: dispRes.pagination.total,
+          vendidos: vendRes.pagination.total,
+          reservados: resRes.pagination.total,
+          ganadores: ganRes.pagination.total,
+        })
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error al cargar estadísticas')
       }
     }
 
     fetchStats()
-  }, [])
+  }, [selectedRifa])
 
   const getEstadoBadge = (estado: string) => {
     switch (estado) {
@@ -148,10 +189,10 @@ export default function TicketsPage() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-2xl font-bold text-white">{stats.total.toLocaleString()}</p>
-                    <p className="text-sm text-gray-400">Total Tickets</p>
+                    <p className="text-2xl font-bold text-gray-400">{stats.disponibles.toLocaleString()}</p>
+                    <p className="text-sm text-gray-400">Disponibles</p>
                   </div>
-                  <Ticket className="h-8 w-8 text-blue-500" />
+                  <Ticket className="h-8 w-8 text-gray-400" />
                 </div>
               </CardContent>
             </Card>
@@ -159,10 +200,21 @@ export default function TicketsPage() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-2xl font-bold text-green-500">{stats.activos.toLocaleString()}</p>
-                    <p className="text-sm text-gray-400">Activos</p>
+                    <p className="text-2xl font-bold text-green-500">{stats.vendidos.toLocaleString()}</p>
+                    <p className="text-sm text-gray-400">Vendidos</p>
                   </div>
                   <Ticket className="h-8 w-8 text-green-500" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gray-800 border-gray-700">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-2xl font-bold text-blue-500">{stats.reservados.toLocaleString()}</p>
+                    <p className="text-sm text-gray-400">Reservados</p>
+                  </div>
+                  <Ticket className="h-8 w-8 text-blue-500" />
                 </div>
               </CardContent>
             </Card>
@@ -174,17 +226,6 @@ export default function TicketsPage() {
                     <p className="text-sm text-gray-400">Ganadores</p>
                   </div>
                   <Ticket className="h-8 w-8 text-yellow-500" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gray-800 border-gray-700">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-2xl font-bold text-gray-400">{stats.usados.toLocaleString()}</p>
-                    <p className="text-sm text-gray-400">Usados</p>
-                  </div>
-                  <Ticket className="h-8 w-8 text-gray-400" />
                 </div>
               </CardContent>
             </Card>
@@ -209,8 +250,22 @@ export default function TicketsPage() {
             <div className="h-10 bg-gray-700 rounded-lg w-28" />
           </div>
         ) : (
-          <div className="flex flex-col sm:flex-row gap-4 items-center">
-            <div className="relative flex-1">
+          <div className="flex flex-col sm:flex-row gap-4 items-center w-full">
+            <select
+              value={selectedRifa}
+              onChange={(e) => {
+                setSelectedRifa(e.target.value)
+                setPage(1)
+              }}
+              className="w-full sm:w-64 bg-gray-700 border border-gray-600 rounded-lg text-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            >
+              {rifas.map((rifa) => (
+                <option key={rifa.id} value={rifa.id}>
+                  {rifa.nombre}
+                </option>
+              ))}
+            </select>
+            <div className="relative flex-1 w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
