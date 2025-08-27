@@ -49,6 +49,8 @@ export default function PagosPage() {
   const [selectedPago, setSelectedPago] = useState<Pago | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null)
+  const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
 
   const fetchPagos = async () => {
     try {
@@ -162,6 +164,30 @@ export default function PagosPage() {
     await handleAction(pagoId, 'RECHAZAR', razon)
   }
 
+  const handleExport = async () => {
+    setExportError(null)
+    setExporting(true)
+    try {
+      const res = await fetch('/api/admin/export/pagos')
+      if (!res.ok) {
+        throw new Error('Error al exportar pagos')
+      }
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'pagos.csv'
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (err: any) {
+      setExportError(err.message || 'Error al exportar pagos')
+    } finally {
+      setExporting(false)
+    }
+  }
+
   const pagosFiltrados = pagos.filter(pago => {
     const matchEstado = filtroEstado === 'TODOS' || pago.estado === filtroEstado
     const matchBusqueda = searchTerm === '' || 
@@ -199,10 +225,31 @@ export default function PagosPage() {
         title="💳 Gestión de Pagos"
         description="Administra y verifica todos los pagos del sistema"
         right={(
-          <Button className="bg-teal-600 hover:bg-teal-700 text-white">
-            <Download className="h-4 w-4 mr-2" />
-            Exportar
-          </Button>
+          <div className="flex flex-col items-end">
+            <Button
+              className="bg-teal-600 hover:bg-teal-700 text-white"
+              onClick={handleExport}
+              disabled={exporting}
+            >
+              {exporting ? (
+                <>
+                  <LoadingSpinner className="h-4 w-4 mr-2" />
+                  Exportando...
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar
+                </>
+              )}
+            </Button>
+            <p className="mt-1 text-xs text-gray-400">
+              Formato CSV: id,nombre,cedula,telefono,evento,monto,metodoPago,referencia,estado,fecha,tickets
+            </p>
+            {exportError && (
+              <p className="mt-1 text-xs text-red-400">{exportError}</p>
+            )}
+          </div>
         )}
       />
 

@@ -42,6 +42,8 @@ export default function TicketsPage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const limit = 10
+  const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
   const [stats, setStats] = useState({
     disponibles: 0,
     vendidos: 0,
@@ -152,6 +154,31 @@ export default function TicketsPage() {
     }
   }
 
+  const handleExport = async () => {
+    if (!selectedRifa) return
+    setExportError(null)
+    setExporting(true)
+    try {
+      const res = await fetch(`/api/admin/export/tickets?rifaId=${selectedRifa}`)
+      if (!res.ok) {
+        throw new Error('Error al exportar tickets')
+      }
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'tickets.csv'
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (err: any) {
+      setExportError(err.message || 'Error al exportar tickets')
+    } finally {
+      setExporting(false)
+    }
+  }
+
   return (
   <div className="space-y-6">
       {error && (
@@ -165,10 +192,31 @@ export default function TicketsPage() {
         title="🎟️ Gestión de Tickets"
         description="Administra todos los tickets del sistema"
         right={(
-          <Button className="bg-teal-600 hover:bg-teal-700 text-white">
-            <Download className="h-4 w-4 mr-2" />
-            Exportar Tickets
-          </Button>
+          <div className="flex flex-col items-end">
+            <Button
+              className="bg-teal-600 hover:bg-teal-700 text-white"
+              onClick={handleExport}
+              disabled={exporting || !selectedRifa}
+            >
+              {exporting ? (
+                <>
+                  <LoadingSpinner className="h-4 w-4 mr-2" />
+                  Exportando...
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar Tickets
+                </>
+              )}
+            </Button>
+            <p className="mt-1 text-xs text-gray-400">
+              Formato CSV: numero,estado,rifa,participante,celular,fecha,monto
+            </p>
+            {exportError && (
+              <p className="mt-1 text-xs text-red-400">{exportError}</p>
+            )}
+          </div>
         )}
       />
 
