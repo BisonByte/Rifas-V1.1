@@ -3,7 +3,6 @@
 import { Suspense, useState, useEffect } from 'react'
 import { NewHero } from '@/features/landing/NewHero'
 import { CompraRifa } from '@/features/landing/CompraRifa'
-import { SocialLinks } from '@/features/landing/SocialLinks'
 import { NewFooter } from '@/features/landing/NewFooter'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { FloatingSupportButtons } from '@/features/landing/FloatingSupportButtons'
@@ -16,34 +15,53 @@ export default function HomePage() {
   const [stats, setStats] = useState<{ disponibles: number; vendidos: number; reservados: number; total: number }>({ disponibles: 0, vendidos: 0, reservados: 0, total: 0 })
   const [hasActiveRifa, setHasActiveRifa] = useState(false)
   const [premiosPreview, setPremiosPreview] = useState<Array<{ id: string; titulo: string; descripcion?: string; cantidad?: number; orden?: number }>>([])
+  const [rifas, setRifas] = useState<any[]>([])
+  const [currentRifaIndex, setCurrentRifaIndex] = useState(0)
 
+  // Cargar todas las rifas activas
   useEffect(() => {
-    const loadStats = async () => {
+    const loadRifas = async () => {
       try {
-        const rifasResp = await get('/api/rifas?limit=1') as any
-        const rifas = rifasResp?.success ? rifasResp.data : rifasResp
-        const firstRifa = Array.isArray(rifas) ? rifas[0] : null
-        if (!firstRifa) {
+        const rifasResp = await get('/api/rifas') as any
+        const data = rifasResp?.success ? rifasResp.data : rifasResp
+        if (Array.isArray(data) && data.length > 0) {
+          setRifas(data)
+          setHasActiveRifa(true)
+        } else {
           setHasActiveRifa(false)
           setPremiosPreview([])
-          return
         }
-        setHasActiveRifa(true)
-        // Cargar estadísticas de la primera rifa activa
-        const statsResp = await get(`/api/rifas/${firstRifa.id}/stats`) as any
-        if (statsResp?.success && statsResp.data) setStats(statsResp.data)
-        // Usar premios de la rifa para el panel lateral (si existen)
-        const premios = Array.isArray(firstRifa.premios) ? [...firstRifa.premios] : []
-        premios.sort((a: any, b: any) => (a.orden ?? 0) - (b.orden ?? 0))
-        setPremiosPreview(premios)
       } catch (error) {
-        console.error('Error cargando estadísticas de tickets:', error)
+        console.error('Error cargando rifas:', error)
         setHasActiveRifa(false)
         setPremiosPreview([])
       }
     }
-    loadStats()
+    loadRifas()
   }, [])
+
+  // Cargar estadísticas de la rifa seleccionada
+  useEffect(() => {
+    const current = rifas[currentRifaIndex]
+    if (!current) return
+    const loadStats = async () => {
+      try {
+        const statsResp = await get(`/api/rifas/${current.id}/stats`) as any
+        if (statsResp?.success && statsResp.data) setStats(statsResp.data)
+        const premios = Array.isArray(current.premios) ? [...current.premios] : []
+        premios.sort((a: any, b: any) => (a.orden ?? 0) - (b.orden ?? 0))
+        setPremiosPreview(premios)
+      } catch (error) {
+        console.error('Error cargando estadísticas de tickets:', error)
+      }
+    }
+    loadStats()
+  }, [currentRifaIndex, rifas])
+
+  const totalRifas = rifas.length
+  const nextRifa = () => setCurrentRifaIndex(i => (totalRifas ? (i + 1) % totalRifas : 0))
+  const prevRifa = () => setCurrentRifaIndex(i => (totalRifas ? (i - 1 + totalRifas) % totalRifas : 0))
+  const selectRifa = (i: number) => setCurrentRifaIndex(i)
 
   const progress = stats.total > 0 ? ((stats.vendidos + stats.reservados) / stats.total) * 100 : 0
   const disponiblesPct = stats.total > 0 ? Math.round((stats.disponibles / stats.total) * 100) : 0
@@ -117,7 +135,13 @@ export default function HomePage() {
   <main className="relative z-10">
         {/* Hero Section */}
         <Suspense fallback={<LoadingSpinner />}>
-          <NewHero />
+          <NewHero
+            rifas={rifas}
+            currentIndex={currentRifaIndex}
+            onNext={nextRifa}
+            onPrev={prevRifa}
+            onSelect={selectRifa}
+          />
         </Suspense>
 
         {/* Sección principal de juego */}
