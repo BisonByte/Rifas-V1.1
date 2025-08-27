@@ -52,7 +52,8 @@ export default function PagosPage() {
 
   const fetchPagos = async () => {
     try {
-      const json = await get('/api/admin/verificar-pagos', { cache: 'no-store' })
+      // Solicitar todos los estados al backend
+      const json = await get('/api/admin/verificar-pagos?estado=TODOS', { cache: 'no-store' })
       const payload = (json as any)?.success ? (json as any).data : (json as any)
       const mapped = (payload || []).map((p: any) => ({
         id: p.id,
