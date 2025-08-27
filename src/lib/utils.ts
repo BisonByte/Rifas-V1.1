@@ -68,8 +68,8 @@ export function formatPhone(phone: string): string {
   return '***-***-' + phone.slice(-4)
 }
 
-export function generateTicketNumber(): number {
-  return Math.floor(Math.random() * 900000) + 100000 // 6 dígitos
+export function generateTicketNumber(): string {
+  return Math.floor(Math.random() * 10000).toString().padStart(4, '0') // 4 dígitos
 }
 
 export function validatePhone(phone: string): boolean {
