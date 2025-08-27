@@ -22,8 +22,8 @@ export async function GET(request: NextRequest) {
         prisma.participante.count(),
         prisma.ticket.count({ where: { estado: 'PAGADO' as any } }),
         prisma.compra.aggregate({
-          where: { estadoPago: 'APROBADO' as any },
-          _sum: { monto: true }
+          where: { estadoPago: 'CONFIRMADO' as any },
+          _sum: { montoTotal: true }
         })
       ])
 
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
         totalEventos,
         totalParticipantes,
         totalTickets,
-        totalIngresos: ingresosTotales._sum.monto || 0
+        totalIngresos: ingresosTotales._sum.montoTotal || 0
       },
       eventosTop
     })

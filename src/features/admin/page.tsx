@@ -159,7 +159,9 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-yellow-200 text-sm font-medium">Ingresos Totales</p>
-                <p className="text-3xl font-bold text-white mt-1">${stats ? stats.totalIngresos.toLocaleString() : 0}</p>
+                <p className="text-3xl font-bold text-white mt-1">
+                  ${stats?.totalIngresos?.toLocaleString() ?? '0'}
+                </p>
                 <div className="flex items-center space-x-1 mt-2">
                   <TrendingUp className="h-4 w-4 text-green-400" />
                   <span className="text-green-400 text-sm">+31% vs mes anterior</span>
