@@ -6,6 +6,23 @@ async function seedConfiguration() {
   try {
     console.log('🌱 Poblando configuraciones iniciales...')
 
+    // Migrar clave antigua "sitio_logo" a "logo_url" si existe
+    const oldLogo = await prisma.configuracionSitio.findUnique({
+      where: { clave: 'sitio_logo' }
+    })
+
+    if (oldLogo) {
+      await prisma.configuracionSitio.upsert({
+        where: { clave: 'logo_url' },
+        update: { valor: oldLogo.valor, tipo: oldLogo.tipo },
+        create: { clave: 'logo_url', valor: oldLogo.valor, tipo: oldLogo.tipo }
+      })
+
+      await prisma.configuracionSitio.delete({
+        where: { clave: 'sitio_logo' }
+      })
+    }
+
     // Configuraciones del sitio
     const configuraciones = [
       {
@@ -19,7 +36,7 @@ async function seedConfiguration() {
         tipo: 'text'
       },
       {
-        clave: 'sitio_logo',
+        clave: 'logo_url',
         valor: '/logo.png',
         tipo: 'image'
       },
