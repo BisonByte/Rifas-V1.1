@@ -23,13 +23,20 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams
-    const estado = searchParams.get('estado') || 'EN_VERIFICACION'
+    // El parámetro "estado" puede ser una lista separada por comas o "TODOS"
+    const estadoParam = searchParams.get('estado')
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
     const skip = (page - 1) * limit
 
+    const where: any = {}
+    if (estadoParam && estadoParam !== 'TODOS') {
+      const estados = estadoParam.split(',')
+      where.estadoPago = { in: estados as any }
+    }
+
     const compras = await prisma.compra.findMany({
-      where: { estadoPago: estado as any },
+      where,
       include: {
         participante: {
           select: { nombre: true, celular: true, email: true }
