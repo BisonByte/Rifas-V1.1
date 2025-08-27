@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { hashPassword, requireAuth, isAdmin } from '@/lib/auth'
 import { z } from 'zod'
+import { RolUsuario } from '@prisma/client'
 
 // Force dynamic rendering for API routes
 export const dynamic = 'force-dynamic'
@@ -10,7 +11,7 @@ const CreateUserSchema = z.object({
   nombre: z.string().min(2, 'Nombre debe tener al menos 2 caracteres'),
   email: z.string().email('Email inválido'),
   password: z.string().min(6, 'Contraseña debe tener al menos 6 caracteres'),
-  rol: z.enum(['SUPER_ADMIN', 'ADMIN', 'VENDEDOR', 'AUDITOR']),
+  rol: z.nativeEnum(RolUsuario),
   celular: z.string().optional()
 })
 
@@ -152,8 +153,8 @@ export async function GET(request: NextRequest) {
     // Construir filtros
     const where: any = {}
     
-    if (rol && ['SUPER_ADMIN', 'ADMIN', 'VENDEDOR', 'AUDITOR'].includes(rol)) {
-      where.rol = rol
+    if (rol && Object.values(RolUsuario).includes(rol as RolUsuario)) {
+      where.rol = rol as RolUsuario
     }
     
     if (activo !== null && activo !== undefined) {
