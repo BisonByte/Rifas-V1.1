@@ -3,9 +3,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { TicketVerifier } from '@/features/landing/TicketVerifier'
 import { get } from '@/lib/api-client'
+import type { ApiResponse } from '@/types'
 import { sanitizeHtml } from '@/lib/sanitize'
 
-type SiteConfig = Record<string, any>
+type SiteConfig = Record<string, unknown>
 
 function classNames(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(' ')
@@ -69,18 +70,22 @@ export function FloatingSupportButtons() {
   const [config, setConfig] = useState<SiteConfig>({})
 
   useEffect(() => {
-    get('/api/configuracion')
-      .then((json: any) => {
-        // Tolerar ambas formas: {success, data} o lista/objeto directo
-        const maybe = (json?.success ? json.data : json) as any
-        if (Array.isArray(maybe)) {
-          const obj: Record<string, any> = {}
-          for (const it of maybe) obj[it.clave] = it.valor
-          setConfig(obj)
-        } else {
-          setConfig(maybe || {})
-        }
-      })
+      get<ApiResponse<Record<string, unknown>> | Array<{ clave: string; valor: unknown }>>('/api/configuracion')
+        .then((json) => {
+          // Tolerar ambas formas: {success, data} o lista/objeto directo
+          const maybe = (json as ApiResponse<Record<string, unknown>>)?.success
+            ? (json as ApiResponse<Record<string, unknown>>).data
+            : json
+          if (Array.isArray(maybe)) {
+            const obj: Record<string, unknown> = {}
+            for (const it of maybe as Array<{ clave: string; valor: unknown }>) {
+              obj[it.clave] = it.valor
+            }
+            setConfig(obj)
+          } else {
+            setConfig((maybe as Record<string, unknown>) || {})
+          }
+        })
       .catch(() => {})
   }, [])
 

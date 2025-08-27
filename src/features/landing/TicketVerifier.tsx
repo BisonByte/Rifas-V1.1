@@ -11,9 +11,35 @@ import { VerificacionSchema, type VerificacionData } from '@/lib/validations'
 import { formatDate, formatPhone, formatCurrencyFlexible } from '@/lib/utils'
 import { EstadoTicket } from '@/types'
 
-export function TicketVerifier() {
-  const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<any>(null)
+  interface TicketInfo {
+    numero: number
+    estado: EstadoTicket
+    participante: {
+      nombre: string
+      celular: string
+      email?: string
+    }
+    fechaCompra: Date
+    monto: number
+    moneda: string
+  }
+
+  interface TicketSummary {
+    numero: number
+    estado: EstadoTicket
+    fechaCompra: Date
+    monto: number
+  }
+
+  interface VerificationResult {
+    ticket?: TicketInfo
+    tickets?: TicketSummary[] | null
+    error?: string
+  }
+
+  export function TicketVerifier() {
+    const [loading, setLoading] = useState(false)
+    const [result, setResult] = useState<VerificationResult | null>(null)
 
   const {
     register,
@@ -38,34 +64,34 @@ export function TicketVerifier() {
       await new Promise(resolve => setTimeout(resolve, 1000))
 
       // Datos de ejemplo
-      const exampleResult = {
-        ticket: {
-          numero: data.busqueda.includes('123') ? 123 : Math.floor(Math.random() * 1000),
-          estado: EstadoTicket.PAGADO,
-          participante: {
-            nombre: 'Juan P***',
-            celular: formatPhone('+1234567890'),
-            email: 'j***@email.com'
-          },
-          fechaCompra: new Date(),
-          monto: 10,
-          moneda: 'VES'
-        },
-        tickets: data.tipo === 'celular' ? [
-          {
-            numero: 123,
+        const exampleResult: VerificationResult = {
+          ticket: {
+            numero: data.busqueda.includes('123') ? 123 : Math.floor(Math.random() * 1000),
             estado: EstadoTicket.PAGADO,
+            participante: {
+              nombre: 'Juan P***',
+              celular: formatPhone('+1234567890'),
+              email: 'j***@email.com'
+            },
             fechaCompra: new Date(),
-            monto: 10
+            monto: 10,
+            moneda: 'VES'
           },
-          {
-            numero: 456,
-            estado: EstadoTicket.RESERVADO,
-            fechaCompra: new Date(),
-            monto: 10
-          }
-        ] : null
-      }
+          tickets: data.tipo === 'celular' ? [
+            {
+              numero: 123,
+              estado: EstadoTicket.PAGADO,
+              fechaCompra: new Date(),
+              monto: 10
+            },
+            {
+              numero: 456,
+              estado: EstadoTicket.RESERVADO,
+              fechaCompra: new Date(),
+              monto: 10
+            }
+          ] : null
+        }
 
       setResult(exampleResult)
     } catch (error) {
@@ -241,8 +267,8 @@ export function TicketVerifier() {
                       </h3>
                       
                       <div className="space-y-2">
-                        {result.tickets.map((ticket: any, index: number) => (
-                          <div key={index} className="flex justify-between items-center p-3 bg-white rounded border">
+                          {result.tickets.map((ticket: TicketSummary, index: number) => (
+                            <div key={index} className="flex justify-between items-center p-3 bg-white rounded border">
                             <div>
                               <span className="font-medium">
                                 Ticket #{ticket.numero.toString().padStart(3, '0')}

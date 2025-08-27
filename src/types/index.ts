@@ -1,3 +1,16 @@
+export interface RifaConfig {
+  [key: string]: unknown
+}
+
+export interface TicketExtras {
+  numeros?: number[]
+  [key: string]: unknown
+}
+
+export interface AuditLogPayload {
+  [key: string]: unknown
+}
+
 export interface Rifa {
   id: string
   nombre: string
@@ -15,7 +28,7 @@ export interface Rifa {
   metaTitulo?: string
   metaDescripcion?: string
   imagenOg?: string
-  configuracion?: any
+  configuracion?: RifaConfig
   createdAt: Date
   updatedAt: Date
   premios?: Premio[]
@@ -64,7 +77,7 @@ export interface Ticket {
   monto?: number
   fechaReserva?: Date
   fechaVencimiento?: Date
-  numerosExtra?: any
+  numerosExtra?: TicketExtras
   notas?: string
   createdAt: Date
   updatedAt: Date
@@ -154,7 +167,7 @@ export interface AuditLog {
   accion: string
   entidad: string
   entidadId: string
-  payload?: any
+  payload?: AuditLogPayload
   ip?: string
   userAgent?: string
   createdAt: Date
@@ -202,7 +215,7 @@ export enum EstadoSorteo {
 }
 
 // Tipos de respuesta de API
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean
   data?: T
   error?: string

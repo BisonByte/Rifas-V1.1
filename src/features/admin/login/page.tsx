@@ -14,18 +14,29 @@ interface LoginForm {
   rememberMe: boolean
 }
 
-interface LoginResponse {
-  success: boolean
-  user?: {
-    id: string
-    nombre: string
-    email: string
-    rol: string
+  interface LoginResponse {
+    success: boolean
+    user?: {
+      id: string
+      nombre: string
+      email: string
+      rol: string
+    }
+    message?: string
+    error?: string
+    details?: unknown
   }
-  message?: string
-  error?: string
-  details?: any
-}
+
+  interface AuthMeResponse {
+    success: boolean
+    user?: {
+      id: string
+      nombre: string
+      email: string
+      rol: string
+    }
+    error?: string
+  }
 
 function LoginContent() {
   const router = useRouter()
@@ -46,7 +57,7 @@ function LoginContent() {
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        const data = await get('/api/auth/me') as any
+          const data = await get<AuthMeResponse>('/api/auth/me')
         if (data?.success && ['ADMIN', 'SUPER_ADMIN'].includes(data?.user?.rol)) {
           router.push(redirectTo)
         }
