@@ -17,6 +17,22 @@ export default function HomePage() {
   const [premiosPreview, setPremiosPreview] = useState<Array<{ id: string; titulo: string; descripcion?: string; cantidad?: number; orden?: number }>>([])
   const [rifas, setRifas] = useState<any[]>([])
   const [currentRifaIndex, setCurrentRifaIndex] = useState(0)
+  const [config, setConfig] = useState<{ logo_url?: string } | null>(null)
+
+  // Cargar configuración general
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const cfgResp = await get('/api/configuracion') as any
+        const data = cfgResp?.success ? cfgResp.data : cfgResp
+        setConfig(data ?? {})
+      } catch (error) {
+        console.error('Error cargando configuración:', error)
+        setConfig({})
+      }
+    }
+    loadConfig()
+  }, [])
 
   // Cargar todas las rifas activas
   useEffect(() => {
@@ -106,7 +122,11 @@ export default function HomePage() {
           {/* Branding */}
           <a href="#inicio" className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center shadow-lg ring-1 ring-white/10">
-              <span className="text-xl">🍀</span>
+              {config?.logo_url ? (
+                <img src={config.logo_url} alt="Logo" className="max-h-10 w-auto h-auto object-contain" />
+              ) : (
+                <span className="text-xl">🍀</span>
+              )}
             </div>
             <span className="text-lg md:text-xl font-extrabold tracking-tight">
               JUEGA CON FE & DISFRÚTALO
