@@ -44,9 +44,6 @@ export default function TicketsPage() {
   const limit = 10
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
-  const [actionMessage, setActionMessage] = useState<
-    { type: 'success' | 'error'; text: string } | null
-  >(null)
   const [stats, setStats] = useState({
     disponibles: 0,
     vendidos: 0,
@@ -160,7 +157,6 @@ export default function TicketsPage() {
   const handleExport = async () => {
     if (!selectedRifa) return
     setExportError(null)
-    setActionMessage(null)
     setExporting(true)
     try {
       const res = await fetch(`/api/admin/export/tickets?rifaId=${selectedRifa}`)
@@ -176,7 +172,6 @@ export default function TicketsPage() {
       link.click()
       link.remove()
       window.URL.revokeObjectURL(url)
-      setActionMessage({ type: 'success', text: 'Tickets exportados' })
     } catch (err: any) {
       setExportError(err.message || 'Error al exportar tickets')
     } finally {
@@ -190,12 +185,6 @@ export default function TicketsPage() {
         <Alert variant="destructive">
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-      {actionMessage && (
-        <Alert variant={actionMessage.type === 'error' ? 'destructive' : 'default'}>
-          <AlertTitle>{actionMessage.type === 'error' ? 'Error' : 'Éxito'}</AlertTitle>
-          <AlertDescription>{actionMessage.text}</AlertDescription>
         </Alert>
       )}
 

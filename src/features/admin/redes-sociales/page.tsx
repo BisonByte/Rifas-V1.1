@@ -5,7 +5,6 @@ import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import { get, post, put, del } from '@/lib/api-client'
 import { AdminHeader } from '@/features/admin/ui/AdminHeader'
 import { AdminSection } from '@/features/admin/ui/AdminSection'
@@ -23,11 +22,6 @@ export default function RedesSocialesPage() {
   const [loading, setLoading] = useState(true)
   const [editingRed, setEditingRed] = useState<Partial<RedSocial> | null>(null)
   const [isCreating, setIsCreating] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [actionMessage, setActionMessage] = useState<
-    { type: 'success' | 'error'; text: string } | null
-  >(null)
 
   useEffect(() => {
     cargarRedes()
@@ -61,8 +55,7 @@ export default function RedesSocialesPage() {
 
   const guardarRed = async () => {
     if (!editingRed) return
-    setSaving(true)
-    setActionMessage(null)
+
     try {
       const url = '/api/admin/redes-sociales'
       if (isCreating) {
@@ -70,14 +63,12 @@ export default function RedesSocialesPage() {
       } else {
         await put(url, editingRed)
       }
-      setActionMessage({ type: 'success', text: isCreating ? 'Red social creada' : 'Red social actualizada' })
+      alert(isCreating ? 'Red social creada exitosamente' : 'Red social actualizada exitosamente')
       setEditingRed(null)
       cargarRedes()
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error guardando red social:', error)
-      setActionMessage({ type: 'error', text: error.message || 'Error guardando red social' })
-    } finally {
-      setSaving(false)
+      alert('Error guardando red social')
     }
   }
 
@@ -92,17 +83,14 @@ export default function RedesSocialesPage() {
 
   const eliminarRed = async (id: string) => {
     if (!confirm('¿Estás seguro de eliminar esta red social?')) return
-    setDeletingId(id)
-    setActionMessage(null)
+
     try {
       await del(`/api/admin/redes-sociales?id=${id}`)
-      setActionMessage({ type: 'success', text: 'Red social eliminada' })
+      alert('Red social eliminada exitosamente')
       cargarRedes()
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error eliminando red social:', error)
-      setActionMessage({ type: 'error', text: error.message || 'Error eliminando red social' })
-    } finally {
-      setDeletingId(null)
+      alert('Error eliminando red social')
     }
   }
 
@@ -129,12 +117,6 @@ export default function RedesSocialesPage() {
   return (
   <div>
       <div className="max-w-7xl mx-auto space-y-6">
-        {actionMessage && (
-          <Alert variant={actionMessage.type === 'error' ? 'destructive' : 'default'}>
-            <AlertTitle>{actionMessage.type === 'error' ? 'Error' : 'Éxito'}</AlertTitle>
-            <AlertDescription>{actionMessage.text}</AlertDescription>
-          </Alert>
-        )}
         {/* Header */}
         <AdminHeader
           title="📱 Redes Sociales"
@@ -171,15 +153,7 @@ export default function RedesSocialesPage() {
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" onClick={() => editarRed(red)} className="border-slate-600/50 text-slate-200 hover:bg-slate-700/40">✏️</Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => eliminarRed(red.id)}
-                      className="border-red-600/40 text-red-300 hover:bg-red-600/10"
-                      disabled={deletingId === red.id}
-                    >
-                      {deletingId === red.id ? <LoadingSpinner className="h-4 w-4" /> : '🗑️'}
-                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => eliminarRed(red.id)} className="border-red-600/40 text-red-300 hover:bg-red-600/10">🗑️</Button>
                   </div>
                 </div>
               </CardContent>
@@ -292,18 +266,16 @@ export default function RedesSocialesPage() {
             </div>
 
             <div className="flex space-x-3 p-6 bg-slate-800/40 rounded-b-2xl">
-              <Button
-                onClick={guardarRed}
+              <Button 
+                onClick={guardarRed} 
                 className="flex-1"
-                disabled={saving}
               >
-                {saving ? 'Guardando…' : '💾 Guardar'}
+                💾 Guardar
               </Button>
-              <Button
+              <Button 
                 onClick={() => setEditingRed(null)}
                 variant="outline"
                 className="flex-1 border-slate-600/50 text-slate-200 hover:bg-slate-700/40"
-                disabled={saving}
               >
                 ❌ Cancelar
               </Button>

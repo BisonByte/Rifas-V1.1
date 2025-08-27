@@ -166,7 +166,6 @@ export default function PagosPage() {
 
   const handleExport = async () => {
     setExportError(null)
-    setActionMessage(null)
     setExporting(true)
     try {
       const res = await fetch('/api/admin/export/pagos')
@@ -182,7 +181,6 @@ export default function PagosPage() {
       link.click()
       link.remove()
       window.URL.revokeObjectURL(url)
-      setActionMessage({ type: 'success', text: 'Pagos exportados' })
     } catch (err: any) {
       setExportError(err.message || 'Error al exportar pagos')
     } finally {
