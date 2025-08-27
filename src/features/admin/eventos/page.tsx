@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/badge'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
-import { get, post, del } from '@/lib/api-client'
+import { get, post } from '@/lib/api-client'
 import type { ApiResponse } from '@/types'
 import { AdminHeader } from '@/features/admin/ui/AdminHeader'
 import { AdminSection } from '@/features/admin/ui/AdminSection'
@@ -61,10 +61,6 @@ export default function EventosPage() {
     ingresos: 0
   })
   const [publishing, setPublishing] = useState<string | null>(null)
-  const [actionMessage, setActionMessage] = useState<
-    { type: 'success' | 'error'; text: string } | null
-  >(null)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchEventos = async () => {
@@ -127,25 +123,6 @@ export default function EventosPage() {
     }
   }
 
-  const handleFilter = () => alert('Funcionalidad de filtros no implementada')
-
-  const handleVerTodo = () => setSearchTerm('')
-
-  const eliminarEvento = async (id: string) => {
-    if (!confirm('¿Eliminar evento?')) return
-    setDeletingId(id)
-    setActionMessage(null)
-    try {
-      await del(`/api/admin/eventos?id=${id}`)
-      setEventos(prev => prev.filter(e => e.id !== id))
-      setActionMessage({ type: 'success', text: 'Evento eliminado' })
-    } catch (err: any) {
-      setActionMessage({ type: 'error', text: err.message || 'Error al eliminar' })
-    } finally {
-      setDeletingId(null)
-    }
-  }
-
   const getEstadoBadge = (estado: string) => {
     switch (estado) {
       case 'ACTIVO':
@@ -175,12 +152,6 @@ export default function EventosPage() {
         <Alert variant="destructive">
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-      {actionMessage && (
-        <Alert variant={actionMessage.type === 'error' ? 'destructive' : 'default'}>
-          <AlertTitle>{actionMessage.type === 'error' ? 'Error' : 'Éxito'}</AlertTitle>
-          <AlertDescription>{actionMessage.text}</AlertDescription>
         </Alert>
       )}
 
@@ -270,18 +241,11 @@ export default function EventosPage() {
             />
           </div>
           <div className="flex gap-3">
-            <Button
-              variant="outline"
-              className="border-slate-600 text-slate-300 hover:bg-slate-700/50 hover:text-white px-4 py-3 rounded-xl transition-all duration-200"
-              onClick={handleFilter}
-            >
+            <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700/50 hover:text-white px-4 py-3 rounded-xl transition-all duration-200">
               <Filter className="h-4 w-4 mr-2" />
               Filtrar
             </Button>
-            <Button
-              className="bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-white px-4 py-3 rounded-xl transition-all duration-200 transform hover:scale-105"
-              onClick={handleVerTodo}
-            >
+            <Button className="bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-white px-4 py-3 rounded-xl transition-all duration-200 transform hover:scale-105">
               <Eye className="h-4 w-4 mr-2" />
               Ver Todo
             </Button>
@@ -415,18 +379,12 @@ export default function EventosPage() {
                     )}
                   </Button>
                 )}
-                <Button
-                  size="sm"
-                  variant="outline"
+                <Button 
+                  size="sm" 
+                  variant="outline" 
                   className="border-red-500/30 text-red-400 hover:bg-red-500/20 hover:text-red-300 hover:border-red-400/50 transition-all duration-200"
-                  onClick={() => eliminarEvento(evento.id)}
-                  disabled={deletingId === evento.id}
                 >
-                  {deletingId === evento.id ? (
-                    <LoadingSpinner className="h-4 w-4" />
-                  ) : (
-                    <Trash2 className="h-4 w-4" />
-                  )}
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             </CardContent>
