@@ -34,7 +34,7 @@ export const RifaSchema = z.object({
   // Límite por persona deshabilitado
   limitePorPersona: z.number().int().positive().optional().or(z.undefined()),
   tiempoReserva: z.number().int().positive().default(30),
-  moneda: z.string().default('USD'),
+  moneda: z.string().default('VES'),
   zonaHoraria: z.string().default('UTC')
 })
 

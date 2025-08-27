@@ -5,28 +5,28 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatCurrency(amount: number, currency: string = 'USD'): string {
-  return new Intl.NumberFormat('es-ES', {
+export function formatCurrency(amount: number, currency: string = 'VES'): string {
+  return new Intl.NumberFormat('es-VE', {
     style: 'currency',
     currency: currency,
   }).format(amount)
 }
 
 export type CurrencyFormatOptions = {
-  code?: string // ISO 4217 e.g., 'VES', 'USD'
-  symbol?: string // e.g., 'BsS', '$'
+  code?: string // ISO 4217 e.g., 'VES'
+  symbol?: string // e.g., 'Bs.', '$'
   locale?: string // e.g., 'es-VE'
   position?: 'prefix' | 'suffix' // Where to place symbol when custom
   minimumFractionDigits?: number
   maximumFractionDigits?: number
 }
 
-// Flexible formatter that can place a custom symbol (e.g., BsS) as suffix while still using Intl for number formatting
+// Flexible formatter that can place a custom symbol (e.g., Bs.) as suffix while still using Intl for number formatting
 export function formatCurrencyFlexible(amount: number, opts: CurrencyFormatOptions = {}): string {
   const {
-    code = 'USD',
-    symbol,
-    locale = 'es-ES',
+    code = 'VES',
+    symbol = 'Bs.',
+    locale = 'es-VE',
     position = 'prefix',
     minimumFractionDigits = 2,
     maximumFractionDigits = 2,

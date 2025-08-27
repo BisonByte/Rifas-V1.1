@@ -56,7 +56,7 @@ export function FAQ() {
       {
         id: '7',
         pregunta: '¿Puedo comprar más de un ticket?',
-        respuesta: 'Sí, puedes comprar hasta 10 tickets por persona. Simplemente selecciona múltiples números en la grilla antes de proceder al pago. El monto total se calculará automáticamente ($10 USD por ticket).',
+        respuesta: 'Sí, puedes comprar hasta 10 tickets por persona. Simplemente selecciona múltiples números en la grilla antes de proceder al pago. El monto total se calculará automáticamente (Bs.10 VES por ticket).',
         categoria: 'compra'
       },
       {

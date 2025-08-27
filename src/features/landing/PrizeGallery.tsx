@@ -28,7 +28,7 @@ export function PrizeGallery() {
       {
         id: '1',
         titulo: '🥇 Primer Premio',
-        descripcion: 'iPhone 15 Pro Max 256GB + $500 USD en efectivo',
+        descripcion: 'iPhone 15 Pro Max 256GB + Bs.500 VES en efectivo',
         foto: '/images/premio1.jpg',
         cantidad: 1,
         // ticketGanador: { numero: 777, participante: 'María G***' } // Ejemplo post-sorteo

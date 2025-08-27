@@ -37,7 +37,7 @@ export async function createOrder(total: number) {
       purchase_units: [
         {
           amount: {
-            currency_code: 'USD',
+            currency_code: 'VES',
             value: total.toFixed(2)
           }
         }

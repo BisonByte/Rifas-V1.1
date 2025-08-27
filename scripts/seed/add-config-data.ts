@@ -30,9 +30,9 @@ async function main() {
         cedula: 'V-12345678'
       },
       {
-        nombre: 'Zelle USD',
+        nombre: 'Zelle',
         tipo: 'zelle',
-        descripcion: 'Pagos en dólares vía Zelle',
+        descripcion: 'Pagos vía Zelle',
         activo: true,
         orden: 3,
         telefono: '+1 305-123-4567'

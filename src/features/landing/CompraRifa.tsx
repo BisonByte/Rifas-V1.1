@@ -167,7 +167,7 @@ export function CompraRifa() {
         }
         // Defaults: Venezuela
         const code = map['currency_code'] || 'VES'
-        const symbol = map['currency_symbol'] || 'BsS'
+        const symbol = map['currency_symbol'] || 'Bs.'
         const locale = map['currency_locale'] || 'es-VE'
         const position = (map['currency_position'] as 'prefix'|'suffix') || 'suffix'
         setMoneda({ code, symbol, locale, position })
@@ -1010,7 +1010,7 @@ export function CompraRifa() {
                 {cantidadSeleccionada} ticket{cantidadSeleccionada > 1 ? 's' : ''} × {moneda
                   ? formatCurrencyFlexible(rifaSeleccionada?.precioPorBoleto || 0, {
                       code: moneda?.code || 'VES',
-                      symbol: moneda?.symbol || 'BsS',
+                      symbol: moneda?.symbol || 'Bs.',
                       locale: moneda?.locale || 'es-VE',
                       position: moneda?.position || 'suffix',
                     })
