@@ -73,3 +73,10 @@ $usuarios = $db->query('SELECT * FROM usuarios')->fetchAll();
 ```
 
 Ajusta las variables de entorno `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS` o `DATABASE_URL` según tus credenciales.
+
+## cPanel Deployment
+
+1. **Subir archivos PHP**: Utiliza el Administrador de archivos o FTP de cPanel para cargar el contenido del proyecto, en especial el directorio `php/` y los archivos públicos, dentro de `public_html` o la carpeta raíz del dominio.
+2. **Importar el esquema SQL**: En phpMyAdmin crea la base de datos e importa el archivo correspondiente desde `prisma/` (`schema.mysql.sql` o `schema.postgres.sql`).
+3. **Configurar variables de entorno**: Copia `.env.example` a `.env` y edita las variables como `DB_HOST`, `DB_NAME`, `DB_USER` y `DB_PASS` con las credenciales de tu servidor.
+4. **Permisos de archivos**: Asegúrate de que los archivos tengan permisos `644` y los directorios `755` para que el servidor pueda leerlos; ajusta permisos de escritura en directorios que lo requieran.
