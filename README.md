@@ -52,3 +52,24 @@ npm run dev
 Notas:
 - Variables `NEXTAUTH_*` no son usadas por este proyecto (autenticación JWT propia).
 - Revisa `.env.example` para un ejemplo completo.
+
+## Migración a MySQL/MariaDB o PostgreSQL
+
+En el directorio `prisma/` se incluyen archivos SQL que replican el esquema definido en `schema.prisma`:
+
+- `schema.mysql.sql` para bases de datos MySQL o MariaDB.
+- `schema.postgres.sql` para bases de datos PostgreSQL.
+
+Estos archivos pueden importarse directamente desde cPanel u otro panel de control para preparar la base de datos sin necesidad de Prisma.
+
+### Uso desde PHP
+
+Si el proyecto se despliega en un entorno PHP, el directorio `php/` contiene un pequeño envoltorio basado en PDO que expone una conexión similar a `src/lib/prisma.ts`:
+
+```php
+require __DIR__ . '/php/Database.php';
+$db = Database::getInstance()->getConnection();
+$usuarios = $db->query('SELECT * FROM usuarios')->fetchAll();
+```
+
+Ajusta las variables de entorno `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS` o `DATABASE_URL` según tus credenciales.
