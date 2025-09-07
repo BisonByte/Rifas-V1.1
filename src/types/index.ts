@@ -1,26 +1,3 @@
-import {
-  RolUsuario,
-  EstadoRifa,
-  EstadoTicket,
-  EstadoPago,
-  EstadoSorteo,
-} from '@prisma/client'
-
-export { RolUsuario, EstadoRifa, EstadoTicket, EstadoPago, EstadoSorteo }
-
-export interface RifaConfig {
-  [key: string]: unknown
-}
-
-export interface TicketExtras {
-  numeros?: number[]
-  [key: string]: unknown
-}
-
-export interface AuditLogPayload {
-  [key: string]: unknown
-}
-
 export interface Rifa {
   id: string
   nombre: string
@@ -38,7 +15,7 @@ export interface Rifa {
   metaTitulo?: string
   metaDescripcion?: string
   imagenOg?: string
-  configuracion?: RifaConfig
+  configuracion?: any
   createdAt: Date
   updatedAt: Date
   premios?: Premio[]
@@ -87,7 +64,7 @@ export interface Ticket {
   monto?: number
   fechaReserva?: Date
   fechaVencimiento?: Date
-  numerosExtra?: TicketExtras
+  numerosExtra?: any
   notas?: string
   createdAt: Date
   updatedAt: Date
@@ -177,25 +154,55 @@ export interface AuditLog {
   accion: string
   entidad: string
   entidadId: string
-  payload?: AuditLogPayload
+  payload?: any
   ip?: string
   userAgent?: string
   createdAt: Date
   usuario?: Usuario
 }
 
-import {
-  RolUsuario,
-  EstadoRifa,
-  EstadoTicket,
-  EstadoPago,
-  EstadoSorteo,
-} from '@prisma/client'
+// Enums
+export enum RolUsuario {
+  SUPER_ADMIN = 'SUPER_ADMIN',
+  ADMIN = 'ADMIN',
+  VENDEDOR = 'VENDEDOR',
+  AUDITOR = 'AUDITOR'
+}
 
-export { RolUsuario, EstadoRifa, EstadoTicket, EstadoPago, EstadoSorteo }
+export enum EstadoRifa {
+  BORRADOR = 'BORRADOR',
+  ACTIVA = 'ACTIVA',
+  PAUSADA = 'PAUSADA',
+  FINALIZADA = 'FINALIZADA',
+  CANCELADA = 'CANCELADA'
+}
+
+export enum EstadoTicket {
+  DISPONIBLE = 'DISPONIBLE',
+  RESERVADO = 'RESERVADO',
+  PENDIENTE_PAGO = 'PENDIENTE_PAGO',
+  PAGADO = 'PAGADO',
+  RECHAZADO = 'RECHAZADO',
+  CADUCADO = 'CADUCADO',
+  GANADOR = 'GANADOR'
+}
+
+export enum EstadoPago {
+  PENDIENTE = 'PENDIENTE',
+  APROBADO = 'APROBADO',
+  RECHAZADO = 'RECHAZADO',
+  CANCELADO = 'CANCELADO'
+}
+
+export enum EstadoSorteo {
+  PENDIENTE = 'PENDIENTE',
+  EN_PROCESO = 'EN_PROCESO',
+  COMPLETADO = 'COMPLETADO',
+  CANCELADO = 'CANCELADO'
+}
 
 // Tipos de respuesta de API
-export interface ApiResponse<T = unknown> {
+export interface ApiResponse<T = any> {
   success: boolean
   data?: T
   error?: string

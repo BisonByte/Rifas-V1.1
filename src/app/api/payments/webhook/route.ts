@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getOrder } from '@/lib/paypal'
+// PayPal eliminado: webhook queda en no-op para compatibilidad
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,17 +10,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'paymentId no proporcionado' }, { status: 400 })
     }
 
-    try {
-      const order = await getOrder(paymentId)
-      if (order?.status === 'COMPLETED') {
-        await prisma.compra.updateMany({
-          where: { paymentId },
-          data: { estadoPago: 'PAGADO' }
-        })
-      }
-    } catch (err) {
-      console.error('Error verificando orden PayPal:', err)
-    }
+    // Antes se consultaba a PayPal; ahora no hacemos nada aquí
 
     return NextResponse.json({ success: true })
   } catch (err) {

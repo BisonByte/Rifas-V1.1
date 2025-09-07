@@ -60,6 +60,24 @@ export default function MetodosPagoPage() {
     if (!editingMethod) return
 
     try {
+      // Validaciones mínimas para evitar guardar datos incompletos
+      const nombreOk = (editingMethod.nombre || '').trim().length > 0
+      if (!nombreOk) {
+        alert('El nombre del método es obligatorio. Ej: Zelle')
+        return
+      }
+
+      if ((editingMethod.tipo || 'BANCO') === 'BILLETERA') {
+        let datosObj: any = {}
+        try { datosObj = JSON.parse(editingMethod.datos || '{}') } catch {}
+        const email = (datosObj.email || datosObj.usuario || '').trim()
+        const tel = (datosObj.telefono || '').trim()
+        if (!email && !tel) {
+          alert('Para Billetera Digital (Zelle), ingresa Email o Teléfono (al menos uno).')
+          return
+        }
+      }
+
       const url = '/api/admin/metodos-pago'
 
       if (isCreating) {
@@ -207,7 +225,7 @@ export default function MetodosPagoPage() {
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-slate-300 uppercase tracking-wide">Usuario/Email</label>
               <Input
-                placeholder="usuario@paypal.com"
+                placeholder="usuario@billetera.com"
                 value={datosObj.usuario || ''}
                 onChange={(e) => updateDatos('usuario', e.target.value)}
                 className={inputClass}
@@ -221,6 +239,19 @@ export default function MetodosPagoPage() {
                 onChange={(e) => updateDatos('telefono', e.target.value)}
                 className={inputClass}
               />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <label className="block text-sm font-semibold text-slate-300 uppercase tracking-wide">Moneda a mostrar</label>
+              <select
+                value={datosObj.monedaVisual || ''}
+                onChange={(e) => updateDatos('monedaVisual', e.target.value)}
+                className={inputClass}
+              >
+                <option value="">Automático (según tipo)</option>
+                <option value="VES">Bolívares (VES)</option>
+                <option value="USD">Dólares (USD)</option>
+              </select>
+              <p className="text-xs text-slate-400">Si eliges USD se mostrará el precio en dólares (requiere precioUSD en la rifa).</p>
             </div>
           </div>
         )
@@ -256,6 +287,18 @@ export default function MetodosPagoPage() {
                 onChange={(e) => updateDatos('direccion', e.target.value)}
                 className={inputClass}
               />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-slate-300 uppercase tracking-wide">Moneda a mostrar</label>
+              <select
+                value={datosObj.monedaVisual || 'USD'}
+                onChange={(e) => updateDatos('monedaVisual', e.target.value)}
+                className={inputClass}
+              >
+                <option value="">Automático (USD)</option>
+                <option value="VES">Bolívares (VES)</option>
+                <option value="USD">Dólares (USD)</option>
+              </select>
             </div>
           </div>
         )
@@ -366,7 +409,7 @@ export default function MetodosPagoPage() {
                     Nombre del Método
                   </label>
                   <Input
-                    placeholder="Ej: Banesco - Transferencia"
+                    placeholder={editingMethod?.tipo === 'BILLETERA' ? 'Ej: Zelle' : 'Ej: Banesco - Transferencia'}
                     value={editingMethod.nombre || ''}
                     onChange={(e) => setEditingMethod({...editingMethod, nombre: e.target.value})}
                     className="w-full px-4 py-3 bg-slate-800/60 border border-slate-600/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-200 placeholder-slate-400"

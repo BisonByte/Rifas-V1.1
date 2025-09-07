@@ -248,8 +248,8 @@ export default function TicketsPage() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-2xl font-bold text-gray-400">{stats.disponibles.toLocaleString()}</p>
-                    <p className="text-sm text-gray-400">Disponibles</p>
+                    <p className="stat-number text-gray-400">{stats.disponibles.toLocaleString()}</p>
+                    <p className="stat-title">Disponibles</p>
                   </div>
                   <Ticket className="h-8 w-8 text-gray-400" />
                 </div>
@@ -259,8 +259,8 @@ export default function TicketsPage() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-2xl font-bold text-green-500">{stats.vendidos.toLocaleString()}</p>
-                    <p className="text-sm text-gray-400">Vendidos</p>
+                    <p className="stat-number stat-number--accent">{stats.vendidos.toLocaleString()}</p>
+                    <p className="stat-title">Vendidos</p>
                   </div>
                   <Ticket className="h-8 w-8 text-green-500" />
                 </div>
@@ -270,8 +270,8 @@ export default function TicketsPage() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-2xl font-bold text-blue-500">{stats.reservados.toLocaleString()}</p>
-                    <p className="text-sm text-gray-400">Reservados</p>
+                    <p className="stat-number text-blue-400">{stats.reservados.toLocaleString()}</p>
+                    <p className="stat-title">Reservados</p>
                   </div>
                   <Ticket className="h-8 w-8 text-blue-500" />
                 </div>
@@ -281,8 +281,8 @@ export default function TicketsPage() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-2xl font-bold text-yellow-500">{stats.ganadores.toLocaleString()}</p>
-                    <p className="text-sm text-gray-400">Ganadores</p>
+                    <p className="stat-number text-yellow-400">{stats.ganadores.toLocaleString()}</p>
+                    <p className="stat-title">Ganadores</p>
                   </div>
                   <Ticket className="h-8 w-8 text-yellow-500" />
                 </div>

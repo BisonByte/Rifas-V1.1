@@ -175,17 +175,7 @@ export const CONFIG = {
     },
   },
 
-  PAYPAL: {
-    get CLIENT_ID() {
-      return getConfigValueSync('PAYPAL_CLIENT_ID')
-    },
-    get CLIENT_SECRET() {
-      return getConfigValueSync('PAYPAL_CLIENT_SECRET')
-    },
-    get ENV() {
-      return getConfigValueSync('PAYPAL_ENV') || 'sandbox'
-    },
-  },
+  // PayPal eliminado
 
   // Configuración de SMS
   SMS: {

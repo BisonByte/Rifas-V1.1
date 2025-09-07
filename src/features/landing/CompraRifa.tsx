@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, useRef } from 'react'
 import * as QRCode from 'qrcode'
@@ -6,7 +6,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { formatCurrencyFlexible } from '@/lib/utils'
 import { get, post, HttpError } from '@/lib/api-client'
 import { PaymentMethods } from '@/features/landing/PaymentMethods'
-import { EstadoTicket } from '@prisma/client'
+import { TicketReceipt } from '@/features/landing/components/TicketReceipt'
 
 interface Rifa {
   id: string
@@ -14,6 +14,7 @@ interface Rifa {
   descripcion: string
   portadaUrl?: string | null
   precioPorBoleto: number
+  precioUSD?: number | null
   totalBoletos: number
   limitePorPersona?: number
   fechaSorteo: string
@@ -22,7 +23,7 @@ interface Rifa {
 
 interface Ticket {
   numero: number
-  estado: EstadoTicket
+  estado: 'DISPONIBLE' | 'RESERVADO' | 'VENDIDO'
   participante?: { nombre: string } | null
 }
 
@@ -37,21 +38,148 @@ interface MetodoPago {
   telefono?: string
 }
 
-interface CompraData {
-  rifaId: string
-  participante: {
-    nombre: string
-    celular: string
-    email?: string
-  }
-  ticketsSeleccionados: number[]
-  metodoPago: {
-    id: string
-    referencia?: string
-    montoTotal: number
-    imagenComprobante?: string | null
-  }
-}
+type Country = { name: string; dial: string; iso: string }
+
+const COUNTRIES: Country[] = [
+  { name: 'Bangladesh', dial: '+880', iso: 'BD' },
+  { name: 'Belarus', dial: '+375', iso: 'BY' },
+  { name: 'Belgium', dial: '+32', iso: 'BE' },
+  { name: 'Belize', dial: '+501', iso: 'BZ' },
+  { name: 'Benin', dial: '+229', iso: 'BJ' },
+  { name: 'Bhutan', dial: '+975', iso: 'BT' },
+  { name: 'Bolivia', dial: '+591', iso: 'BO' },
+  { name: 'Bosnia and Herzegovina', dial: '+387', iso: 'BA' },
+  { name: 'Botswana', dial: '+267', iso: 'BW' },
+  { name: 'Brazil', dial: '+55', iso: 'BR' },
+  { name: 'Brunei', dial: '+673', iso: 'BN' },
+  { name: 'Bulgaria', dial: '+359', iso: 'BG' },
+  { name: 'Burkina Faso', dial: '+226', iso: 'BF' },
+  { name: 'Burundi', dial: '+257', iso: 'BI' },
+  { name: 'Cambodia', dial: '+855', iso: 'KH' },
+  { name: 'Cameroon', dial: '+237', iso: 'CM' },
+  { name: 'Canada', dial: '+1', iso: 'CA' },
+  { name: 'Cape Verde', dial: '+238', iso: 'CV' },
+  { name: 'Chad', dial: '+235', iso: 'TD' },
+  { name: 'Chile', dial: '+56', iso: 'CL' },
+  { name: 'China', dial: '+86', iso: 'CN' },
+  { name: 'Colombia', dial: '+57', iso: 'CO' },
+  { name: 'Costa Rica', dial: '+506', iso: 'CR' },
+  { name: 'Côte d’Ivoire', dial: '+225', iso: 'CI' },
+  { name: 'Croatia', dial: '+385', iso: 'HR' },
+  { name: 'Cuba', dial: '+53', iso: 'CU' },
+  { name: 'Cyprus', dial: '+357', iso: 'CY' },
+  { name: 'Czech Republic', dial: '+420', iso: 'CZ' },
+  { name: 'Denmark', dial: '+45', iso: 'DK' },
+  { name: 'Dominican Republic', dial: '+1-809', iso: 'DO' },
+  { name: 'Ecuador', dial: '+593', iso: 'EC' },
+  { name: 'Egypt', dial: '+20', iso: 'EG' },
+  { name: 'El Salvador', dial: '+503', iso: 'SV' },
+  { name: 'Estonia', dial: '+372', iso: 'EE' },
+  { name: 'Ethiopia', dial: '+251', iso: 'ET' },
+  { name: 'Finland', dial: '+358', iso: 'FI' },
+  { name: 'France', dial: '+33', iso: 'FR' },
+  { name: 'Georgia', dial: '+995', iso: 'GE' },
+  { name: 'Germany', dial: '+49', iso: 'DE' },
+  { name: 'Ghana', dial: '+233', iso: 'GH' },
+  { name: 'Greece', dial: '+30', iso: 'GR' },
+  { name: 'Guatemala', dial: '+502', iso: 'GT' },
+  { name: 'Haiti', dial: '+509', iso: 'HT' },
+  { name: 'Honduras', dial: '+504', iso: 'HN' },
+  { name: 'Hong Kong', dial: '+852', iso: 'HK' },
+  { name: 'Hungary', dial: '+36', iso: 'HU' },
+  { name: 'Iceland', dial: '+354', iso: 'IS' },
+  { name: 'India', dial: '+91', iso: 'IN' },
+  { name: 'Indonesia', dial: '+62', iso: 'ID' },
+  { name: 'Iran', dial: '+98', iso: 'IR' },
+  { name: 'Iraq', dial: '+964', iso: 'IQ' },
+  { name: 'Ireland', dial: '+353', iso: 'IE' },
+  { name: 'Israel', dial: '+972', iso: 'IL' },
+  { name: 'Italy', dial: '+39', iso: 'IT' },
+  { name: 'Jamaica', dial: '+1-876', iso: 'JM' },
+  { name: 'Japan', dial: '+81', iso: 'JP' },
+  { name: 'Jordan', dial: '+962', iso: 'JO' },
+  { name: 'Kazakhstan', dial: '+7', iso: 'KZ' },
+  { name: 'Kenya', dial: '+254', iso: 'KE' },
+  { name: 'Kuwait', dial: '+965', iso: 'KW' },
+  { name: 'Kyrgyzstan', dial: '+996', iso: 'KG' },
+  { name: 'Laos', dial: '+856', iso: 'LA' },
+  { name: 'Latvia', dial: '+371', iso: 'LV' },
+  { name: 'Lebanon', dial: '+961', iso: 'LB' },
+  { name: 'Lithuania', dial: '+370', iso: 'LT' },
+  { name: 'Luxembourg', dial: '+352', iso: 'LU' },
+  { name: 'Macedonia', dial: '+389', iso: 'MK' },
+  { name: 'Madagascar', dial: '+261', iso: 'MG' },
+  { name: 'Malaysia', dial: '+60', iso: 'MY' },
+  { name: 'Maldives', dial: '+960', iso: 'MV' },
+  { name: 'Mali', dial: '+223', iso: 'ML' },
+  { name: 'Malta', dial: '+356', iso: 'MT' },
+  { name: 'Mauritania', dial: '+222', iso: 'MR' },
+  { name: 'Mauritius', dial: '+230', iso: 'MU' },
+  { name: 'Mexico', dial: '+52', iso: 'MX' },
+  { name: 'Moldova', dial: '+373', iso: 'MD' },
+  { name: 'Monaco', dial: '+377', iso: 'MC' },
+  { name: 'Mongolia', dial: '+976', iso: 'MN' },
+  { name: 'Montenegro', dial: '+382', iso: 'ME' },
+  { name: 'Morocco', dial: '+212', iso: 'MA' },
+  { name: 'Mozambique', dial: '+258', iso: 'MZ' },
+  { name: 'Myanmar', dial: '+95', iso: 'MM' },
+  { name: 'Namibia', dial: '+264', iso: 'NA' },
+  { name: 'Nepal', dial: '+977', iso: 'NP' },
+  { name: 'Netherlands', dial: '+31', iso: 'NL' },
+  { name: 'New Zealand', dial: '+64', iso: 'NZ' },
+  { name: 'Nicaragua', dial: '+505', iso: 'NI' },
+  { name: 'Niger', dial: '+227', iso: 'NE' },
+  { name: 'Nigeria', dial: '+234', iso: 'NG' },
+  { name: 'Norway', dial: '+47', iso: 'NO' },
+  { name: 'Oman', dial: '+968', iso: 'OM' },
+  { name: 'Pakistan', dial: '+92', iso: 'PK' },
+  { name: 'Panama', dial: '+507', iso: 'PA' },
+  { name: 'Paraguay', dial: '+595', iso: 'PY' },
+  { name: 'Peru', dial: '+51', iso: 'PE' },
+  { name: 'Philippines', dial: '+63', iso: 'PH' },
+  { name: 'Poland', dial: '+48', iso: 'PL' },
+  { name: 'Portugal', dial: '+351', iso: 'PT' },
+  { name: 'Qatar', dial: '+974', iso: 'QA' },
+  { name: 'Romania', dial: '+40', iso: 'RO' },
+  { name: 'Russia', dial: '+7', iso: 'RU' },
+  { name: 'Rwanda', dial: '+250', iso: 'RW' },
+  { name: 'Saudi Arabia', dial: '+966', iso: 'SA' },
+  { name: 'Senegal', dial: '+221', iso: 'SN' },
+  { name: 'Serbia', dial: '+381', iso: 'RS' },
+  { name: 'Seychelles', dial: '+248', iso: 'SC' },
+  { name: 'Sierra Leone', dial: '+232', iso: 'SL' },
+  { name: 'Singapore', dial: '+65', iso: 'SG' },
+  { name: 'Slovakia', dial: '+421', iso: 'SK' },
+  { name: 'Slovenia', dial: '+386', iso: 'SI' },
+  { name: 'Somalia', dial: '+252', iso: 'SO' },
+  { name: 'South Africa', dial: '+27', iso: 'ZA' },
+  { name: 'South Korea', dial: '+82', iso: 'KR' },
+  { name: 'Spain', dial: '+34', iso: 'ES' },
+  { name: 'Sri Lanka', dial: '+94', iso: 'LK' },
+  { name: 'Sudan', dial: '+249', iso: 'SD' },
+  { name: 'Sweden', dial: '+46', iso: 'SE' },
+  { name: 'Switzerland', dial: '+41', iso: 'CH' },
+  { name: 'Syria', dial: '+963', iso: 'SY' },
+  { name: 'Taiwan', dial: '+886', iso: 'TW' },
+  { name: 'Tajikistan', dial: '+992', iso: 'TJ' },
+  { name: 'Tanzania', dial: '+255', iso: 'TZ' },
+  { name: 'Thailand', dial: '+66', iso: 'TH' },
+  { name: 'Tunisia', dial: '+216', iso: 'TN' },
+  { name: 'Turkey', dial: '+90', iso: 'TR' },
+  { name: 'Turkmenistan', dial: '+993', iso: 'TM' },
+  { name: 'Uganda', dial: '+256', iso: 'UG' },
+  { name: 'Ukraine', dial: '+380', iso: 'UA' },
+  { name: 'United Arab Emirates', dial: '+971', iso: 'AE' },
+  { name: 'United Kingdom', dial: '+44', iso: 'GB' },
+  { name: 'United States', dial: '+1', iso: 'US' },
+  { name: 'Uruguay', dial: '+598', iso: 'UY' },
+  { name: 'Uzbekistan', dial: '+998', iso: 'UZ' },
+  { name: 'Venezuela', dial: '+58', iso: 'VE' },
+  { name: 'Vietnam', dial: '+84', iso: 'VN' },
+  { name: 'Yemen', dial: '+967', iso: 'YE' },
+  { name: 'Zambia', dial: '+260', iso: 'ZM' },
+  { name: 'Zimbabwe', dial: '+263', iso: 'ZW' },
+]
 
 export function CompraRifa() {
   const [rifas, setRifas] = useState<Rifa[]>([])
@@ -60,8 +188,10 @@ export function CompraRifa() {
   const [animClass, setAnimClass] = useState<string>('')
   const [switching, setSwitching] = useState<boolean>(false)
   const containerRef = useRef<HTMLDivElement | null>(null)
-    const cardRef = useRef<HTMLDivElement | null>(null)
+  const cardRef = useRef<HTMLDivElement | null>(null)
   const touchStartRef = useRef<{ x: number; y: number; t: number } | null>(null)
+  const pointerStartRef = useRef<{ x: number; y: number; t: number; type: string } | null>(null)
+  const wheelLockRef = useRef<number>(0)
   const [navTop, setNavTop] = useState<number>(typeof window !== 'undefined' ? window.innerHeight / 2 : 300)
   const [showNavArrows, setShowNavArrows] = useState<boolean>(true)
   const [tickets, setTickets] = useState<Ticket[]>([])
@@ -71,6 +201,7 @@ export function CompraRifa() {
   const [errorCompra, setErrorCompra] = useState<string | null>(null)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [moneda, setMoneda] = useState<{ code: string; symbol: string; locale: string; position: 'prefix'|'suffix' } | null>(null)
+  const [monedaBase, setMonedaBase] = useState<{ code: string; symbol: string; locale: string; position: 'prefix'|'suffix' } | null>(null)
   const [theme, setTheme] = useState<{ primary: string; secondary: string }>({ primary: '#2563eb', secondary: '#7c3aed' })
   const [topOpen, setTopOpen] = useState<boolean>(false)
   const [topCompradores, setTopCompradores] = useState<Array<{ participanteId: string; nombre: string; celular: string | null; totalTickets: number; totalMonto: number }>>([])
@@ -79,7 +210,9 @@ export function CompraRifa() {
   // Nueva lógica: compra por cantidad (sin seleccionar números específicos)
   const [cantidadSeleccionada, setCantidadSeleccionada] = useState<number>(1)
   const [nombre, setNombre] = useState('')
+  const [cedula, setCedula] = useState('')
   const [celular, setCelular] = useState('')
+  const [countryCode, setCountryCode] = useState('+58')
   const [email, setEmail] = useState('')
   const [metodoPagoId, setMetodoPagoId] = useState('')
   const [referencia, setReferencia] = useState('')
@@ -89,6 +222,7 @@ export function CompraRifa() {
   const [bump, setBump] = useState(false)
   const [posterZoomOpen, setPosterZoomOpen] = useState(false)
   const [posterError, setPosterError] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
   // Eliminado: selección de números y grilla
 
   // Post-compra: tickets asignados y modal de visualización
@@ -144,8 +278,8 @@ export function CompraRifa() {
         const json = await get('/api/metodos-pago') as any
         const data = json?.success ? json.data : json
         setMetodosPago(Array.isArray(data) ? data : [])
-      } catch (error) {
-        console.error('Error cargando métodos de pago:', error)
+  } catch (error) {
+  console.error('Error cargando métodos de pago:', error)
       }
     }
 
@@ -154,7 +288,7 @@ export function CompraRifa() {
     })
   }, [])
 
-    // Cargar configuración de moneda y colores desde configuracion pública
+    // Cargar configuración de moneda y colores desde configuración pública
   useEffect(() => {
   const loadSiteConfig = async () => {
       try {
@@ -171,7 +305,9 @@ export function CompraRifa() {
         const symbol = map['currency_symbol'] || 'Bs.'
         const locale = map['currency_locale'] || 'es-VE'
         const position = (map['currency_position'] as 'prefix'|'suffix') || 'suffix'
-        setMoneda({ code, symbol, locale, position })
+        const cfg = { code, symbol, locale, position }
+        setMoneda(cfg)
+        setMonedaBase(cfg)
         // Colores del tema
         const colorPrincipal = map['color_principal'] || '#2563eb'
         const colorSecundario = map['color_secundario'] || '#7c3aed'
@@ -267,9 +403,9 @@ export function CompraRifa() {
   }, [rifaSeleccionada])
 
   // Utilidades de cantidad
-  const disponiblesCount = tickets.filter(t => t.estado === EstadoTicket.DISPONIBLE).length
-  const reservadosCount = tickets.filter(t => t.estado === EstadoTicket.RESERVADO).length
-  const vendidosCount = tickets.filter(t => t.estado === EstadoTicket.VENDIDO).length
+  const disponiblesCount = tickets.filter(t => t.estado === 'DISPONIBLE').length
+  const reservadosCount = tickets.filter(t => t.estado === 'RESERVADO').length
+  const vendidosCount = tickets.filter(t => t.estado === 'VENDIDO').length
   // Sin límite por persona: máximo permitido es lo disponible
   const maxPermitido = disponiblesCount
 
@@ -342,6 +478,100 @@ export function CompraRifa() {
     }
   }, [rifas, switching])
 
+  // Desktop hover: efecto pop + luz (sin tilt 3D)
+  useEffect(() => {
+    const card = cardRef.current
+    if (!card) return
+    let raf = 0
+    let over = false
+    const onEnter = () => { over = true }
+    const onLeave = () => {
+      over = false
+      // No forzamos transform aquí; dejamos que el :hover en CSS lo maneje
+      card.style.transform = ''
+      card.style.removeProperty('--hover-x')
+      card.style.removeProperty('--hover-y')
+    }
+    const onMove = (e: MouseEvent) => {
+      if (!over || switching) return
+      const rect = card.getBoundingClientRect()
+      const px = (e.clientX - rect.left) / rect.width
+      const py = (e.clientY - rect.top) / rect.height
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => {
+        // Actualizamos solo la luz suave; el pop se maneja en CSS :hover
+        card.style.setProperty('--hover-x', `${(px * 100).toFixed(1)}%`)
+        card.style.setProperty('--hover-y', `${(py * 100).toFixed(1)}%`)
+      })
+    }
+    card.addEventListener('mouseenter', onEnter)
+    card.addEventListener('mouseleave', onLeave)
+    card.addEventListener('mousemove', onMove)
+    return () => {
+      card.removeEventListener('mouseenter', onEnter)
+      card.removeEventListener('mouseleave', onLeave)
+      card.removeEventListener('mousemove', onMove)
+      cancelAnimationFrame(raf)
+    }
+  }, [switching])
+
+  // Desktop: mouse/pen drag and horizontal wheel to switch raffles
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    if (!rifas || rifas.length <= 1) return
+
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse' && e.pointerType !== 'pen') return
+      const target = e.target as HTMLElement | null
+      if (target && target.closest('input, textarea, select, button, a, label, [role="button"], [data-no-swipe]')) return
+      pointerStartRef.current = { x: e.clientX, y: e.clientY, t: Date.now(), type: e.pointerType }
+      // Indicar visualmente que se puede arrastrar
+      el.classList.add('dragging')
+    }
+    const onPointerUp = (e: PointerEvent) => {
+      const start = pointerStartRef.current
+      if (!start || switching) return
+      const dx = e.clientX - start.x
+      const dy = e.clientY - start.y
+      const adx = Math.abs(dx)
+      const ady = Math.abs(dy)
+      const dt = Date.now() - start.t
+      const horizontal = adx > 48 && adx > ady * 1.3 && dt < 600
+      if (horizontal) {
+        if (dx < 0) nextRifa(); else prevRifa()
+      }
+      pointerStartRef.current = null
+      el.classList.remove('dragging')
+    }
+    const onPointerCancel = () => { el.classList.remove('dragging') }
+    const onWheel = (e: WheelEvent) => {
+      if (switching) return
+      const now = Date.now()
+      if (now < wheelLockRef.current) return
+      const absX = Math.abs(e.deltaX)
+      const absY = Math.abs(e.deltaY)
+      if (absX > absY && absX > 20) {
+        e.preventDefault()
+        wheelLockRef.current = now + 500
+        if (e.deltaX > 0) nextRifa(); else prevRifa()
+      }
+    }
+
+    el.addEventListener('pointerdown', onPointerDown)
+    el.addEventListener('pointerup', onPointerUp)
+    el.addEventListener('pointercancel', onPointerCancel as any)
+    el.addEventListener('mouseleave', onPointerCancel as any)
+    el.addEventListener('wheel', onWheel as any, { passive: false } as any)
+    return () => {
+      el.removeEventListener('pointerdown', onPointerDown)
+      el.removeEventListener('pointerup', onPointerUp)
+      el.removeEventListener('pointercancel', onPointerCancel as any)
+      el.removeEventListener('mouseleave', onPointerCancel as any)
+      el.removeEventListener('wheel', onWheel as any)
+    }
+  }, [rifas, switching])
+
   const setCantidad = (valor: number) => {
     setCantidadSeleccionada((prev) => {
       const next = clampCantidad(valor)
@@ -360,7 +590,9 @@ export function CompraRifa() {
 
   const calcularTotal = () => {
     if (!rifaSeleccionada) return 0
-    return cantidadSeleccionada * rifaSeleccionada.precioPorBoleto
+    const useUSD = (moneda?.code || '').toUpperCase() === 'USD' && (rifaSeleccionada.precioUSD ?? 0) > 0
+    const precioUnit = useUSD ? (rifaSeleccionada.precioUSD || 0) : rifaSeleccionada.precioPorBoleto
+    return cantidadSeleccionada * precioUnit
   }
 
   const copiarAlPortapapeles = (texto: string) => {
@@ -434,7 +666,10 @@ export function CompraRifa() {
     if (!nombre || nombre.trim().length < 2) {
       errs.nombre = 'Nombre debe tener al menos 2 caracteres'
     }
-    const celOnly = (celular || '').replace(/\D/g, '')
+  if (!cedula || cedula.trim().length < 5) {
+  errs.cedula = 'Cédula inválida'
+    }
+  const celOnly = (celular || '').replace(/\D/g, '')
     if (!celOnly || celOnly.length < 10) {
       errs.celular = 'Celular debe tener al menos 10 dígitos'
     }
@@ -475,7 +710,9 @@ export function CompraRifa() {
         rifaId: rifaSeleccionada!.id,
         participante: {
           nombre,
-          celular,
+          cedula: cedula || undefined,
+          // enviar número completo con prefijo internacional
+          celular: `${countryCode}${(celular || '').replace(/\D/g, '')}`,
           email: email || undefined
         },
         cantidadTickets: cantidadSeleccionada,
@@ -538,8 +775,8 @@ export function CompraRifa() {
       }
     } catch (error) {
       console.error('Error procesando compra:', error)
-      if (error instanceof HttpError) {
-        // Si vienen detalles de validación (Zod), mostrar el primer detalle útil
+  if (error instanceof HttpError) {
+  // Si vienen detalles de validación (Zod), mostrar el primer detalle útil
         let detalle = ''
         const d: any = (error as any).details
         if (Array.isArray(d) && d.length > 0) {
@@ -595,7 +832,9 @@ export function CompraRifa() {
   const nextRifa = () => {
     if (!hasMultipleRifas || switching) return
     setSwitching(true)
+    // trigger exit animation
     setAnimClass('raffle-exit-left')
+    // short delay to allow exit -> update -> enter
     setTimeout(() => {
       setCurrentIndex((idx) => {
         const next = (idx + 1) % rifas.length
@@ -603,12 +842,14 @@ export function CompraRifa() {
         if (r) setRifaSeleccionada(r)
         return next
       })
+      // enter animation (CSS handles timing)
       setAnimClass('raffle-enter-right page-nudge')
+      // clear class after the CSS animation finishes
       setTimeout(() => {
         setAnimClass('')
         setSwitching(false)
-      }, 300)
-    }, 180)
+      }, 420)
+    }, 120)
   }
 
   const prevRifa = () => {
@@ -626,8 +867,8 @@ export function CompraRifa() {
       setTimeout(() => {
         setAnimClass('')
         setSwitching(false)
-      }, 300)
-    }, 180)
+      }, 420)
+    }, 120)
   }
 
   const RifaPeek = ({ rifa }: { rifa: Rifa }) => (
@@ -651,64 +892,35 @@ export function CompraRifa() {
 
   return (
     <div className="relative mx-auto lg:max-w-6xl xl:max-w-[88rem] 2xl:max-w-[96rem] px-3 sm:px-4 lg:px-6" ref={containerRef}>
-      {/* Navegación entre rifas: solo mostrar si hay más de una rifa activa */}
-      {hasMultipleRifas && (
-        <>
-          <button
-            type="button"
-            aria-label="Anterior sorteo"
-            onClick={prevRifa}
-            disabled={switching}
-            className={`btn-float hidden lg:flex fixed left-5 xl:left-7 z-30 w-[52px] h-[52px] xl:w-14 xl:h-14 rounded-full glass-nav nav-arrow items-center justify-center ring-1 ring-white/10 shadow-2xl hover:shadow-[0_16px_42px_rgba(0,0,0,0.52)] ${showNavArrows ? '' : 'opacity-0 pointer-events-none'}`}
-              style={{ color: theme.primary, top: navTop }}
-            title="Sorteo anterior"
-          >
-            <svg viewBox="0 0 24 24" className="w-6 h-6 xl:w-7 xl:h-7" aria-hidden>
-              <path fill="currentColor" d="M15.41 7.41L14 6l-6 6l6 6l1.41-1.41L10.83 12z" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            aria-label="Siguiente sorteo"
-            onClick={nextRifa}
-            disabled={switching}
-            className={`btn-float hidden lg:flex fixed right-5 xl:right-7 z-30 w-[52px] h-[52px] xl:w-14 xl:h-14 rounded-full glass-nav nav-arrow items-center justify-center ring-1 ring-white/10 shadow-2xl hover:shadow-[0_16px_42px_rgba(0,0,0,0.52)] ${showNavArrows ? '' : 'opacity-0 pointer-events-none'}`}
-              style={{ color: theme.primary, top: navTop }}
-            title="Siguiente sorteo"
-          >
-            <svg viewBox="0 0 24 24" className="w-6 h-6 xl:w-7 xl:h-7" aria-hidden>
-              <path fill="currentColor" d="M8.59 16.59L10 18l6-6l-6-6l-1.41 1.41L13.17 12z" />
-            </svg>
-          </button>
-        </>
-      )}
+  {/* Navegación entre rifas: solo mostrar si hay más de una rifa activa */}
+  {/* Flechas de navegación flotantes eliminadas según solicitud */}
 
   <div className={`relative overflow-hidden ${animClass}`}>
-    {hasMultipleRifas && prevPreview && (
+    {false && hasMultipleRifas && prevPreview && (
       <div className="absolute inset-0 -translate-x-[60%] opacity-50 pointer-events-none z-0">
-        <RifaPeek rifa={prevPreview} />
+        <RifaPeek rifa={prevPreview!} />
       </div>
     )}
-    {hasMultipleRifas && nextPreview && (
+    {false && hasMultipleRifas && nextPreview && (
       <div className="absolute inset-0 translate-x-[60%] opacity-50 pointer-events-none z-0">
-        <RifaPeek rifa={nextPreview} />
+        <RifaPeek rifa={nextPreview!} />
       </div>
     )}
-    <div className="relative z-10 space-y-5 sm:space-y-6">
-    {/* Información de la rifa */}
-  <div className="relative bg-red-700/80 rounded-xl p-4 border border-red-600/50 backdrop-blur-sm lg:max-w-4xl lg:mx-auto">
+  <div className="relative z-10 space-y-5 sm:space-y-6 raffle-stage">
+  {/* Información de la rifa */}
+  <div ref={cardRef} className="relative rounded-xl p-4 lg:max-w-4xl lg:mx-auto raffle-card group card-modern">
           {/* Imagen de portada si existe */}
           {rifaSeleccionada?.portadaUrl && (
-            <div className="mb-5 mx-auto w-full max-w-[320px] sm:max-w-[420px] md:max-w-[520px] lg:w-[400px]">
+            <div className="mb-6 mx-auto w-full max-w-[340px] sm:max-w-[420px] md:max-w-[520px] lg:max-w-[520px]">
               {/* Marco elegante con gradiente */}
-              <div className="rounded-2xl p-[2px] bg-gradient-to-br from-amber-400/60 via-fuchsia-400/40 to-cyan-400/60 shadow-xl">
-                <div className="relative rounded-2xl bg-black/40 ring-1 ring-white/10 overflow-hidden aspect-[3/4] group">
+              <div className="rounded-3xl p-[2px] bg-gradient-to-br from-amber-400/60 via-fuchsia-400/40 to-cyan-400/60 shadow-xl">
+                <div className="relative rounded-3xl bg-black/40 ring-1 ring-white/10 overflow-hidden aspect-[3/4] group">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   {!posterError ? (
                     <img
                       src={rifaSeleccionada.portadaUrl}
                       alt={`Portada de ${rifaSeleccionada.nombre}`}
-                      className="absolute inset-0 w-full h-full object-contain transition-transform duration-300 group-hover:scale-[1.01] cursor-zoom-in"
+                      className="absolute inset-0 w-full h-full object-contain cursor-zoom-in"
                       loading="lazy"
                       onClick={() => setPosterZoomOpen(true)}
                       onError={() => setPosterError(true)}
@@ -722,9 +934,9 @@ export function CompraRifa() {
                     </div>
                   )}
                   {/* Chip de precio superpuesto */}
-                  <div className="absolute top-2 right-2 drop-shadow">
+                  <div className="absolute top-2 right-2 drop-shadow z-10 pointer-events-none">
                     <div
-                      className="px-3 py-1 rounded-full text-white text-[11px] md:text-sm shadow-lg ring-1 ring-white/20 flex items-center gap-1 backdrop-blur-sm"
+                      className="px-3 py-1 rounded-full text-white text-[11px] md:text-sm shadow-lg ring-1 ring-white/20 flex items-center gap-1 backdrop-blur-sm price-chip-appear"
                       style={{
                         background: `linear-gradient(135deg, ${theme.primary}, ${theme.secondary})`
                       }}
@@ -751,9 +963,13 @@ export function CompraRifa() {
                       aria-label="Ampliar portada"
                       title="Ampliar portada"
                       onClick={() => setPosterZoomOpen(true)}
-                      className="absolute bottom-2 right-2 w-9 h-9 rounded-full bg-white/10 hover:bg-white/15 text-white flex items-center justify-center ring-1 ring-white/20 shadow-md"
+                      className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-black/55 text-white text-xs md:text-sm shadow-lg ring-1 ring-white/10 hover:bg-black/70 transition"
                     >
-                      🔍
+                      {/* Magnifying glass icon */}
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7 7 0 1010.65 10.65a7 7 0 006.99 6.99z" />
+                      </svg>
+                      <span className="leading-none">Zoom</span>
                     </button>
                   )}
                 </div>
@@ -790,16 +1006,15 @@ export function CompraRifa() {
           </div>
       <div className="mt-2 grid grid-cols-1 text-xs">
             <div className="rounded-md bg-black/20 ring-1 ring-white/10 px-2.5 py-1.5 flex items-center justify-between">
-        <span className="flex items-center gap-1 text-gray-300"><span>🎫</span>Restante</span>
+        <span className="flex items-center gap-1 text-gray-300"><span>🎟️</span>Restante</span>
         <span className="font-semibold text-green-300">{animVenta.rest}%</span>
             </div>
           </div>
-  </div>
 
         <div className="mt-3 rounded-lg bg-black/15 ring-1 ring-white/10 overflow-hidden">
           <div className="grid grid-cols-2">
             <div className="flex items-center gap-2 px-3 py-2">
-              <span>💰</span>
+              <span>💵</span>
               <span className="text-[13px] sm:text-sm">Precio</span>
             </div>
             <div className="px-3 py-2 text-right text-yellow-300 font-semibold whitespace-nowrap text-sm">
@@ -818,7 +1033,24 @@ export function CompraRifa() {
         </div>
       </div>
 
-      {/* Selección de cantidad */}
+  {/* Selección de cantidad */}
+  {/* Indicador de navegación entre rifas (debajo del sorteo) */}
+      {hasMultipleRifas && (
+        <div className="mt-2 flex items-center justify-center gap-2 text-white">
+          <span className="inline-flex items-center rounded-full bg-black/60 text-white/90 text-[11px] px-2 py-0.5 ring-1 ring-white/10">
+            {currentIndex + 1} / {rifas.length}
+          </span>
+          <button
+            type="button"
+            onClick={nextRifa}
+            className="inline-flex items-center gap-1 rounded-full bg-black/60 text-white text-[11px] px-2.5 py-1 ring-1 ring-white/10 hover:bg-black/70 active:scale-95 transition"
+            aria-label="Ver siguiente sorteo"
+          >
+            Desliza
+          </button>
+        </div>
+      )}
+
   <div className="lg:max-w-4xl lg:mx-auto">
         <h3 className="text-base sm:text-lg font-semibold mb-3 text-yellow-300">1. Selección de Tickets</h3>
   <div className="grid grid-cols-4 gap-2 sm:gap-3">
@@ -845,7 +1077,7 @@ export function CompraRifa() {
             className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gray-700 text-white text-lg sm:text-xl hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed"
             aria-label="Disminuir"
           >
-            −
+            -
           </button>
           <div className={`flex-1 h-10 sm:h-12 rounded-lg bg-black/40 border border-gray-700 flex items-center justify-center text-lg sm:text-xl font-bold text-white transition-transform duration-150 ${bump ? 'scale-110' : 'scale-100'}`}>
             {cantidadSeleccionada}
@@ -862,7 +1094,7 @@ export function CompraRifa() {
         </div>
 
         {cantidadSeleccionada >= maxPermitido && disponiblesCount > 0 && (
-          <div className="mt-2 text-xs sm:text-sm text-gray-300">
+            <div className="mt-2 text-xs sm:text-sm text-gray-300">
             <span className="text-amber-300">Alcanzaste el máximo disponible</span>
           </div>
         )}
@@ -912,7 +1144,7 @@ export function CompraRifa() {
                         <span className="font-medium text-xs sm:text-sm">{c.nombre}</span>
                       </div>
                       <div className="text-xs sm:text-sm text-gray-300">
-                        <span className="mr-3">🎫 {c.totalTickets}</span>
+                        <span className="mr-3">🎟️ {c.totalTickets}</span>
                         <span>
                           {moneda
                             ? formatCurrencyFlexible(c.totalMonto, {
@@ -937,99 +1169,214 @@ export function CompraRifa() {
   {/* Eliminado: grilla de números */}
   <div className="hidden" />
 
-      {/* Información personal */}
-  <div className="lg:max-w-4xl lg:mx-auto rounded-xl card-modern p-4 sm:p-5 form-modern">
-        <h3 className="text-base sm:text-lg font-semibold mb-3 text-yellow-300">Información personal</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <input
-            type="text"
-            placeholder="Nombre completo *"
-            value={nombre}
-            onChange={(e) => { setNombre(e.target.value); setFormErrors((prev) => { const p = { ...prev }; delete p.nombre; return p; }); }}
-            className={`w-full px-3 py-2 md:px-4 md:py-3 text-sm md:text-base bg-gray-800/80 text-white rounded-lg border focus:ring-2 focus:outline-none transition-all duration-200 placeholder-gray-400 ${formErrors.nombre ? 'border-red-500 focus:border-red-500 focus:ring-red-500/40 animate-pulse' : 'border-gray-600 focus:border-yellow-500 focus:ring-yellow-500/20'}`}
-          />
-          {formErrors.nombre && <p className="text-xs text-red-400 -mt-2 mb-1">{formErrors.nombre}</p>}
-          <input
-            type="tel"
-            placeholder="Celular *"
-            value={celular}
-            onChange={(e) => { setCelular(e.target.value); setFormErrors((prev) => { const p = { ...prev }; delete p.celular; return p; }); }}
-            className={`w-full px-3 py-2 md:px-4 md:py-3 text-sm md:text-base bg-gray-800/80 text-white rounded-lg border focus:ring-2 focus:outline-none transition-all duration-200 placeholder-gray-400 ${formErrors.celular ? 'border-red-500 focus:border-red-500 focus:ring-red-500/40 animate-pulse' : 'border-gray-600 focus:border-yellow-500 focus:ring-yellow-500/20'}`}
-          />
-          {formErrors.celular && <p className="text-xs text-red-400 -mt-2 mb-1">{formErrors.celular}</p>}
-          <input
-            type="email"
-            placeholder="Email (opcional)"
-            value={email}
-            onChange={(e) => { setEmail(e.target.value); setFormErrors((prev) => { const p = { ...prev }; delete p.email; return p; }); }}
-            className={`w-full md:col-span-2 px-3 py-2 md:px-4 md:py-3 text-sm md:text-base bg-gray-800/80 text-white rounded-lg border focus:ring-2 focus:outline-none transition-all duration-200 placeholder-gray-400 ${formErrors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500/40 animate-pulse' : 'border-gray-600 focus:border-yellow-500 focus:ring-yellow-500/20'}`}
-          />
-          {formErrors.email && <p className="text-xs text-red-400 -mt-2 mb-1 md:col-span-2">{formErrors.email}</p>}
+  {/* Información personal */}
+  <div className="lg:max-w-4xl lg:mx-auto rounded-xl card-modern p-4 sm:p-5 form-modern mt-6">
+    <h3 className="text-base sm:text-lg font-semibold mb-3 text-yellow-300">Información personal</h3>
+        <div className="grid grid-cols-1 gap-3">
+          {/* Shared input classes for uniform look */}
+          {/* eslint-disable-next-line react-hooks/rules-of-hooks */}
+          {
+            // build inputClass once per render
+          }
+          <>
+            {/** Using a constant inside the component for consistency */}
+            {(() => {
+              const inputClass = `w-full px-3 py-3 text-sm md:text-base bg-gray-800/80 text-white rounded-lg border focus:ring-2 focus:outline-none transition-all duration-200 placeholder-gray-400`;
+              const inputError = (f: string | undefined) => f ? `${inputClass} border-red-500 focus:border-red-500 focus:ring-red-500/40 animate-pulse` : `${inputClass} border-gray-600 focus:border-yellow-500 focus:ring-yellow-500/20`;
+              return (
+                <div className="space-y-2">
+                  <div>
+                    <label className="text-sm font-medium text-gray-300 block mb-1">Nombre y Apellido *</label>
+                    <input
+                      type="text"
+                      placeholder="Nombre completo *"
+                      value={nombre}
+                      onChange={(e) => { setNombre(e.target.value); setFormErrors((prev) => { const p = { ...prev }; delete p.nombre; return p; }); }}
+                      className={inputError(formErrors.nombre)}
+                    />
+                    {formErrors.nombre && <p className="text-xs text-red-400 -mt-2 mb-1">{formErrors.nombre}</p>}
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-gray-300 block mb-1">Cédula *</label>
+                    <input
+                      type="text"
+                      placeholder="Cédula *"
+                      value={cedula}
+                      onChange={(e) => { setCedula(e.target.value); setFormErrors((prev) => { const p = { ...prev }; delete p.cedula; return p; }); }}
+                      className={inputError(formErrors.cedula)}
+                    />
+                    {formErrors.cedula && <p className="text-xs text-red-400 -mt-2 mb-1">{formErrors.cedula}</p>}
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-gray-300 block mb-1">Teléfono *</label>
+                    <div className="flex gap-3 items-stretch">
+                      <div className="w-36 md:w-44 relative">
+                        <label className="sr-only">Código</label>
+                        <div className="relative">
+                          <select
+                            value={countryCode}
+                            onChange={(e) => setCountryCode(e.target.value)}
+                            className={`appearance-none block w-full h-12 px-3 text-sm md:text-base bg-gray-800/60 text-white rounded-lg border ${formErrors.celular ? 'border-red-500' : 'border-gray-600'} focus:border-yellow-500 focus:ring-yellow-500/20 focus:ring-2 transition-all duration-200`}
+                          >
+                            {COUNTRIES.map(c => (
+                              <option key={c.iso} value={c.dial}>{`${c.dial} (${c.name})`}</option>
+                            ))}
+                          </select>
+                          <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-gray-300 chev">
+                            <svg width="14" height="10" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                              <path d="M1 1L7 7L13 1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <input
+                          type="tel"
+                          placeholder="Número de teléfono *"
+                          value={celular}
+                          onChange={(e) => { setCelular(e.target.value); setFormErrors((prev) => { const p = { ...prev }; delete p.celular; return p; }); }}
+                          className={`${inputClass} h-12 ${formErrors.celular ? 'border-red-500 focus:border-red-500 focus:ring-red-500/40 animate-pulse' : 'border-gray-600 focus:border-yellow-500 focus:ring-yellow-500/20'}`}
+                        />
+                        {formErrors.celular && <p className="text-xs text-red-400 -mt-2 mb-1">{formErrors.celular}</p>}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-gray-300 block mb-1">Email (opcional)</label>
+                    <input
+                      type="email"
+                      placeholder="Email (opcional)"
+                      value={email}
+                      onChange={(e) => { setEmail(e.target.value); setFormErrors((prev) => { const p = { ...prev }; delete p.email; return p; }); }}
+                      className={inputError(formErrors.email)}
+                    />
+                    {formErrors.email && <p className="text-xs text-red-400 -mt-2 mb-1">{formErrors.email}</p>}
+                  </div>
+                </div>
+              )
+            })()}
+          </>
         </div>
       </div>
 
-      {/* Método de pago */}
+  {/* Método de pago */}
       <div>
         <PaymentMethods
           total={rifaSeleccionada ? cantidadSeleccionada * rifaSeleccionada.precioPorBoleto : undefined}
+          usdTotal={rifaSeleccionada && rifaSeleccionada.precioUSD ? cantidadSeleccionada * rifaSeleccionada.precioUSD : undefined}
           ticketsCount={cantidadSeleccionada}
           selectedId={metodoPagoId}
           onSelect={(id) => {
             setMetodoPagoId(id)
             setFormErrors((prev) => { const p = { ...prev }; delete p.metodoPagoId; return p })
+            // Ajustar moneda visual automaticamente segun el metodo de pago
+            try {
+              const m = metodosPago.find(m => m.id === id)
+              if (m) {
+                const norm = (s: string) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase()
+                const t = norm(m.tipo)
+                const n = norm(m.nombre)
+                const isUSD = t === 'BILLETERA' || t === 'CRIPTOMONEDA' || n.includes('ZELLE') || n.includes('USD') || n.includes('DOLAR')
+                if (isUSD && (rifaSeleccionada?.precioUSD ?? 0) > 0) {
+                  setMoneda({ code: 'USD', symbol: '$', locale: 'en-US', position: 'prefix' })
+                } else if (monedaBase) {
+                  setMoneda(monedaBase)
+                }
+              } else if (monedaBase) {
+                setMoneda(monedaBase)
+              }
+            } catch {}
           }}
         />
         {formErrors.metodoPagoId && <p className="text-xs text-red-400 -mt-2 mb-3">{formErrors.metodoPagoId}</p>}
 
         <input
           type="text"
-          placeholder="Referencia del pago (opcional)"
+          inputMode="numeric"
+          pattern="\d{4}"
+          maxLength={4}
+          placeholder="Referencia del pago (últimos 4)"
           value={referencia}
-          onChange={(e) => setReferencia(e.target.value)}
-          className="w-full px-3 py-2 md:px-4 md:py-3 text-sm md:text-base bg-gray-800/80 text-white rounded-lg border border-gray-600 focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20 focus:outline-none mt-4 transition-all duration-200 placeholder-gray-400"
+          onChange={(e) => {
+            // allow only digits and cap to 4
+            const digits = (e.target.value || '').replace(/\D/g, '').slice(0, 4)
+            setReferencia(digits)
+            setFormErrors((prev) => {
+              const p = { ...prev }
+              if (/^\d{4}$/.test(digits)) delete p.referencia
+              else p.referencia = 'La referencia debe tener 4 dígitos numéricos'
+              return p
+            })
+          }}
+          className={`w-full px-3 py-2 md:px-4 md:py-3 text-sm md:text-base bg-gray-800/80 text-white rounded-lg border focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20 focus:outline-none mt-4 transition-all duration-200 placeholder-gray-400 ${formErrors.referencia ? 'border-red-500 focus:border-red-500 focus:ring-red-500/40 animate-pulse' : 'border-gray-600'}`}
         />
+        {formErrors.referencia && <p className="text-xs text-red-400 -mt-2 mb-1">{formErrors.referencia}</p>}
 
         {/* Subir comprobante de pago */}
         <div className="mt-4 p-3 md:p-4 bg-gray-800/60 rounded-lg border border-gray-600/50">
           <label className="block text-xs sm:text-sm font-medium text-yellow-300 mb-2">
-            📄 Subir comprobante de pago (opcional)
+            Subir comprobante de pago
           </label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={manejarImagenComprobante}
-            className="w-full px-2 py-1 md:px-3 md:py-2 bg-gray-700 text-white border border-gray-600 rounded-lg focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20 focus:outline-none file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs md:file:text-sm file:font-semibold file:bg-yellow-600 file:text-white hover:file:bg-yellow-700"
-          />
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => fileInputRef.current?.click()}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click() }}
+            className="w-full cursor-pointer rounded-lg border-2 border-dashed border-gray-600/50 p-6 flex flex-col items-center justify-center text-center text-gray-300 hover:border-yellow-500 transition"
+          >
+            <div className="text-2xl mb-2">Comprobante</div>
+            <div className="text-sm mb-1 text-gray-300">Haz clic para subir el comprobante</div>
+            <div className="text-xs text-gray-400">JPG, PNG, GIF o HEIF (máx. 5MB)</div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={manejarImagenComprobante}
+              className="hidden"
+            />
+          </div>
+
           {previewImagen && (
             <div className="mt-3">
-              <img 
-                src={previewImagen} 
-                alt="Preview comprobante" 
-                className="max-w-full h-24 md:h-32 object-cover rounded border border-gray-600"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  setImagenComprobante(null)
-                  setPreviewImagen(null)
-                }}
-                className="mt-2 text-red-400 hover:text-red-300 text-xs underline"
-              >
-                Eliminar imagen
-              </button>
+              <div className="w-36 h-36 md:w-44 md:h-44 rounded-lg bg-black/30 border border-gray-600/70 ring-1 ring-white/10 overflow-hidden grid place-items-center">
+                <img
+                  src={previewImagen}
+                  alt="Preview comprobante"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <div className="flex items-center gap-3 mt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setImagenComprobante(null)
+                    setPreviewImagen(null)
+                  }}
+                  className="text-red-400 hover:text-red-300 text-xs underline"
+                >
+                  Eliminar imagen
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-xs text-gray-200 underline"
+                >
+                  Cambiar imagen
+                </button>
+              </div>
             </div>
           )}
-          <p className="text-xs text-gray-400 mt-1">
-            Formatos: JPG, PNG, GIF. Máximo 5MB
-          </p>
         </div>
       </div>
 
-      {/* Total */}
-  <div className="bg-gradient-to-r from-gray-800/80 to-gray-700/80 p-4 sm:p-6 rounded-xl border border-gray-600/50 backdrop-blur-sm lg:max-w-3xl lg:mx-auto">
+    {/* Total */}
+  <div className="mt-6 bg-gradient-to-r from-gray-800/80 to-gray-700/80 p-4 sm:p-6 rounded-xl border border-gray-600/50 backdrop-blur-sm lg:max-w-3xl lg:mx-auto">
         <div className="flex justify-between items-center">
           <span className="text-base sm:text-lg font-semibold flex items-center">
-            <span className="mr-2">💰</span>
+
             Total a pagar:
           </span>
           <div className="text-right">
@@ -1047,7 +1394,7 @@ export function CompraRifa() {
             </div>
             <div className="text-xs sm:text-sm text-gray-300">
                 {cantidadSeleccionada} ticket{cantidadSeleccionada > 1 ? 's' : ''} × {moneda
-                  ? formatCurrencyFlexible(rifaSeleccionada?.precioPorBoleto || 0, {
+                  ? formatCurrencyFlexible((moneda?.code?.toUpperCase() === 'USD' && (rifaSeleccionada?.precioUSD ?? 0) > 0 ? (rifaSeleccionada?.precioUSD || 0) : (rifaSeleccionada?.precioPorBoleto || 0)), {
                       code: moneda?.code || 'VES',
                       symbol: moneda?.symbol || 'Bs.',
                       locale: moneda?.locale || 'es-VE',
@@ -1068,7 +1415,7 @@ export function CompraRifa() {
       )}
 
   {/* Términos y condiciones */}
-  <div className={`bg-yellow-500/10 border rounded-lg p-3 sm:p-4 ${formErrors.aceptaTerminos ? 'border-red-500' : 'border-yellow-500/30'} lg:max-w-3xl lg:mx-auto`}>
+  <div className={`mt-5 bg-yellow-500/10 border rounded-lg p-3 sm:p-4 ${formErrors.aceptaTerminos ? 'border-red-500' : 'border-yellow-500/30'} lg:max-w-3xl lg:mx-auto`}>
         <label className="flex items-start space-x-3 text-xs sm:text-sm cursor-pointer leading-snug">
           <input 
             type="checkbox"
@@ -1077,21 +1424,21 @@ export function CompraRifa() {
             className={`mt-1 w-4 h-4 text-yellow-500 bg-gray-800 rounded focus:ring-2 ${formErrors.aceptaTerminos ? 'border-red-500 focus:ring-red-500' : 'border-gray-600 focus:ring-yellow-500'}`}
           />
           <span className="text-gray-200">
-            Al presionar <strong className="text-yellow-300">"Finalizar Compra"</strong> aceptas haber leído y estar de acuerdo con nuestros 
+            Al presionar <strong className="text-yellow-300">"Finalizar Compra"</strong> aceptas haber leído y estar de acuerdo con nuestros
             <a href="#" className="text-yellow-300 hover:text-yellow-200 underline ml-1">Términos y Condiciones</a>
           </span>
         </label>
         {formErrors.aceptaTerminos && <p className="text-xs text-red-400 mt-2">{formErrors.aceptaTerminos}</p>}
       </div>
 
-      {/* Ayuda: habilitar botón */}
+  {/* Ayuda: habilitar botón */}
       {!aceptaTerminos && (
         <div className="text-xs text-gray-400 mt-2 lg:max-w-3xl lg:mx-auto text-center">
           Marca “Términos y Condiciones” para habilitar el botón
         </div>
       )}
 
-      {/* Botón de compra */}
+  {/* Botón de compra */}
     <button 
         onClick={procesarCompra}
         disabled={procesando || !aceptaTerminos || cantidadSeleccionada < 1}
@@ -1110,67 +1457,69 @@ export function CompraRifa() {
           </div>
         ) : (
           <div className="flex items-center justify-center space-x-2">
-            <span>🚀</span>
             <span>Finalizar Compra</span>
-            <span>🎯</span>
+
+
           </div>
         )}
       </button>
 
       {/* Modal de Tickets Post-Compra */}
-      {mostrarModalTickets && ticketsAsignados && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true">
-          <div className="relative w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-gray-900 to-gray-800 shadow-2xl">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-              <div>
-                <div className="text-lg font-bold text-yellow-300">¡Gracias por tu compra!</div>
-                {ultimaCompra?.referencia && (
-                  <div className="text-xs text-gray-300">Ref: {ultimaCompra.referencia}</div>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="flex bg-black/30 rounded-md p-1 text-xs">
-                  <button
-                    className={`px-2 py-1 rounded ${mostrarSoloNumeros ? '' : 'bg-yellow-500 text-black'}`}
-                    onClick={() => setMostrarSoloNumeros(false)}
-                  >Ver tickets</button>
-                  <button
-                    className={`px-2 py-1 rounded ${mostrarSoloNumeros ? 'bg-yellow-500 text-black' : ''}`}
-                    onClick={() => setMostrarSoloNumeros(true)}
-                  >Sólo números</button>
+      {false && mostrarModalTickets && ticketsAsignados && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm" role="dialog" aria-modal="true">
+          <div className="relative w-full h-full overflow-hidden border-t border-white/10 bg-gradient-to-br from-gray-900 to-gray-800 shadow-2xl">
+            <div className="sticky top-0 z-10 border-b border-white/10 bg-gray-900/80 backdrop-blur">
+              <div className="mx-auto w-full max-w-5xl px-3 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 min-w-0">
+                <div className="min-w-0">
+                  <div className="text-lg font-bold text-yellow-300">¡Gracias por tu compra!</div>
+                  {ultimaCompra?.referencia && (
+                    <div className="text-xs text-gray-300">Ref: {ultimaCompra.referencia}</div>
+                  )}
                 </div>
-                <button
-                  onClick={() => window.print()}
-                  className="px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 text-white text-xs border border-white/10"
-                  title="Imprimir"
-                >🖨️ Imprimir</button>
-                <button
-                  onClick={() => { setMostrarModalTickets(false); setTicketsAsignados(null); setQrMap({}); }}
-                  className="w-9 h-9 rounded-full bg-white text-black grid place-items-center"
-                  aria-label="Cerrar"
-                >✕</button>
+                <div className="flex items-center flex-wrap gap-1.5 sm:gap-2 mt-1 sm:mt-0">
+                  <div className="flex flex-wrap rounded-xl bg-black/40 p-1 ring-1 ring-white/10 text-xs">
+                    <button
+                      className={`px-2 py-1 sm:px-2.5 rounded-lg transition ${mostrarSoloNumeros ? '' : 'bg-yellow-500 text-black shadow'}`}
+                      onClick={() => setMostrarSoloNumeros(false)}
+                    >Ver tickets</button>
+                    <button
+                      className={`px-2 py-1 sm:px-2.5 rounded-lg transition ${mostrarSoloNumeros ? 'bg-yellow-500 text-black shadow' : ''}`}
+                      onClick={() => setMostrarSoloNumeros(true)}
+                    >Sólo números</button>
+                  </div>
+                  <button
+                    onClick={() => window.print()}
+                    className="px-2.5 sm:px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 text-white text-xs border border-white/10"
+                    title="Imprimir"
+                  >Imprimir</button>
+                  <button
+                    onClick={() => { setMostrarModalTickets(false); setTicketsAsignados(null); setQrMap({}); }}
+                    className="w-9 h-9 rounded-full bg-white text-black grid place-items-center"
+                    aria-label="Cerrar"
+                  >×</button>
+                </div>
               </div>
             </div>
-            <div className="p-4 overflow-auto max-h-[calc(90vh-56px)] scrollbar-modern">
+
+            <div className="px-4 sm:px-6 py-4 sm:py-6 overflow-auto h-[calc(100vh-64px)] scrollbar-modern max-w-5xl mx-auto">
               {mostrarSoloNumeros ? (
                 <div className="text-center">
                   <div className="text-sm text-gray-300 mb-2">Números asignados</div>
                   <div className="flex flex-wrap gap-2 justify-center">
                     {ticketsAsignados.map(n => (
-                      <span key={n} className="px-3 py-1 rounded bg-black/40 border border-white/10 font-mono text-yellow-200">
+                      <span key={n} className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 font-mono text-yellow-200">
                         {String(n).padStart(4, '0')}
                       </span>
                     ))}
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 sm:gap-6">
                   {ticketsAsignados.map(n => {
                     const padded = String(n).padStart(4, '0')
                     const bg = rifaSeleccionada?.portadaUrl || ''
                     return (
                       <div key={n} className="group relative rounded-[20px] border border-white/10 overflow-hidden shadow-2xl transition-all duration-300 hover:shadow-[0_16px_60px_rgba(0,0,0,0.5)] hover:-translate-y-0.5">
-                        {/* Background image with gradient overlay */}
                         <div className="absolute inset-0">
                           <div
                             className="absolute inset-0 bg-center bg-cover"
@@ -1179,9 +1528,7 @@ export function CompraRifa() {
                           <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/40 to-black/70" />
                         </div>
 
-                        {/* Ticket body with perforation */}
-                        <div className="relative grid grid-cols-[1fr_auto]">
-                          {/* Left content */}
+                        <div className="relative grid grid-cols-1 sm:grid-cols-[1fr_auto] justify-items-center sm:justify-items-stretch text-center sm:text-left">
                           <div className="p-4 pr-3 sm:p-5">
                             <div className="text-[11px] uppercase tracking-wider text-gray-300/90 flex items-center gap-2">
                               <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: `linear-gradient(135deg, ${theme.primary}, ${theme.secondary})` }} />
@@ -1196,49 +1543,45 @@ export function CompraRifa() {
                                 {padded}
                               </div>
                             </div>
-                            <div className="mt-2 grid grid-cols-2 gap-3 text-[11px] text-gray-300/90">
-                              <div className="space-y-0.5">
-                                <div className="opacity-80">Fecha</div>
-                                <div className="font-medium text-white">{new Date().toLocaleString()}</div>
-                              </div>
-                              <div className="space-y-0.5 text-right">
-                                <div className="opacity-80">Ref</div>
-                                <div className="font-mono">{ultimaCompra?.compraId?.slice(0,8)}…</div>
-                              </div>
+                            <div className="mt-2 text-[11px] text-gray-300/90 text-right">
+                              <div className="opacity-80">Ref</div>
+                              <div className="font-mono">{ultimaCompra?.compraId?.slice(0,8)}...</div>
                             </div>
                             <div className="mt-2 text-[11px] text-gray-300/90">
                               A nombre de <span className="font-medium text-white">{nombre || '—'}</span>
                             </div>
                           </div>
 
-                          {/* Perforated divider */}
-                          <div className="relative w-[1px] bg-gradient-to-b from-transparent via-white/10 to-transparent mx-2">
+                          <div className="hidden sm:block relative w-[1px] bg-gradient-to-b from-transparent via-white/10 to-transparent mx-2">
                             <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[2px] bg-[radial-gradient(circle,var(--tw-shadow-color)_1px,transparent_1.5px)] [--tw-shadow-color:rgba(255,255,255,0.35)] bg-[length:2px_8px] bg-repeat-y opacity-60" />
                           </div>
 
-                          {/* Right stub with QR */}
-                          <div className="p-3 pl-2 sm:p-4 flex items-center">
+                          <div className="p-3 pl-2 sm:p-4 flex flex-col items-center">
                             <div className="relative rounded-xl bg-white p-2 shadow-inner">
                               {qrMap[n] ? (
-                                // eslint-disable-next-line @next/next/no-img-element
                                 <img src={qrMap[n]} alt={`QR ${padded}`} className="w-24 h-24 sm:w-28 sm:h-28 rounded" />
                               ) : (
-                                <div className="w-24 h-24 sm:w-28 sm:h-28 grid place-items-center text-xs text-gray-500 border border-gray-200 rounded">
-                                  QR
-                                </div>
+                                <div className="w-24 h-24 sm:w-28 sm:h-28 grid place-items-center text-xs text-gray-500 border border-gray-200 rounded">QR</div>
                               )}
                               <div className="absolute -top-2 -right-2 bg-black text-white text-[10px] px-2 py-0.5 rounded-full shadow">{padded}</div>
                             </div>
+                            <div className="mt-1 text-[10px] text-gray-300/90">Escanea para verificar</div>
                           </div>
                         </div>
 
-                        {/* Notches to simulate real ticket cutouts */}
+                        {/* Fila informativa inferior */}
+                        <div className="px-4 pb-4 sm:px-5 text-[11px] text-gray-300/90 w-full flex items-center justify-center sm:justify-end gap-2">
+                          <span className="px-2 py-0.5 rounded bg-black/30 border border-white/10">Rifa</span>
+                          {ultimaCompra?.referencia && (
+                            <span className="px-2 py-0.5 rounded bg-black/30 border border-white/10">Ref {String(ultimaCompra.referencia).slice(-6)}</span>
+                          )}
+                        </div>
+
                         <div className="pointer-events-none">
                           <div className="absolute -left-3 top-12 h-6 w-6 rounded-full bg-black/90 border border-white/10" />
                           <div className="absolute -right-3 top-12 h-6 w-6 rounded-full bg-black/90 border border-white/10" />
                         </div>
 
-                        {/* Subtle hover shine */}
                         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
                           <div className="absolute -inset-x-10 -top-20 h-40 rotate-12 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
                         </div>
@@ -1248,14 +1591,23 @@ export function CompraRifa() {
                 </div>
               )}
             </div>
-            {/* Inject minimal keyframes for optional shimmer/print improvements */}
-            <style>{`
-              @media print {
-                .group { break-inside: avoid; }
-              }
-            `}</style>
           </div>
         </div>
+      )}
+
+      {/* Nuevo modal estilizado */}
+      {mostrarModalTickets && ticketsAsignados && (
+        <TicketReceipt
+          open={true}
+          onClose={() => { setMostrarModalTickets(false); setTicketsAsignados(null); setQrMap({}); }}
+          tickets={ticketsAsignados}
+          qrMap={qrMap}
+          rifaNombre={rifaSeleccionada?.nombre}
+          portadaUrl={rifaSeleccionada?.portadaUrl}
+          referencia={ultimaCompra?.referencia || ultimaCompra?.compraId || null}
+          participante={nombre}
+          theme={theme}
+        />
       )}
 
       {/* Lightbox para la portada */}
@@ -1265,7 +1617,6 @@ export function CompraRifa() {
           onClick={() => setPosterZoomOpen(false)}
         >
           <div className="relative max-w-[90vw] max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={rifaSeleccionada?.portadaUrl || ''}
               alt={rifaSeleccionada ? `Portada de ${rifaSeleccionada.nombre}` : 'Portada'}
@@ -1278,14 +1629,24 @@ export function CompraRifa() {
               className="absolute -top-3 -right-3 w-10 h-10 rounded-full bg-white text-black shadow-xl grid place-items-center"
               title="Cerrar"
             >
-              ✕
+              x
             </button>
           </div>
         </div>
       )}
+
+      {/* Close main wrappers opened in the return */}
     </div>
     </div>
   </div>
+</div>
   )
 }
- 
+
+
+
+
+
+
+
+

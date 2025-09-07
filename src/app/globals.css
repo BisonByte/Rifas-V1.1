@@ -240,31 +240,39 @@
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
 }
 
-/* Raffle slide transitions */
+/* Raffle slide transitions - refined for a cleaner, more professional feel */
+:root {
+  --raffle-enter-duration: 360ms;
+  --raffle-exit-duration: 180ms;
+  --raffle-ease: cubic-bezier(0.22, 0.9, 0.28, 1);
+}
+
 @keyframes slideInRight {
-  from { opacity: 0; transform: translateX(100%); }
-  to { opacity: 1; transform: translateX(0); }
+  from { opacity: 0; transform: translateX(24%) scale(0.995); }
+  60% { opacity: 0.95; transform: translateX(6%) scale(0.998); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
 }
 @keyframes slideOutLeft {
-  from { opacity: 1; transform: translateX(0); }
-  to { opacity: 0; transform: translateX(-100%); }
+  from { opacity: 1; transform: translateX(0) scale(1); }
+  to { opacity: 0; transform: translateX(-18%) scale(0.995); }
 }
 @keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-100%); }
-  to { opacity: 1; transform: translateX(0); }
+  from { opacity: 0; transform: translateX(-24%) scale(0.995); }
+  60% { opacity: 0.95; transform: translateX(-6%) scale(0.998); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
 }
 @keyframes slideOutRight {
-  from { opacity: 1; transform: translateX(0); }
-  to { opacity: 0; transform: translateX(100%); }
+  from { opacity: 1; transform: translateX(0) scale(1); }
+  to { opacity: 0; transform: translateX(18%) scale(0.995); }
 }
 /* Small delay utility for staged chip entrance */
 .chip-delay-120 { animation-delay: 120ms; }
 .chip-delay-140 { animation-delay: 140ms; }
 
-.raffle-enter-right { animation: slideInRight 380ms cubic-bezier(0.22, 1, 0.36, 1) both; }
-.raffle-exit-left { animation: slideOutLeft 200ms ease-out both; }
-.raffle-enter-left { animation: slideInLeft 380ms cubic-bezier(0.22, 1, 0.36, 1) both; }
-.raffle-exit-right { animation: slideOutRight 200ms ease-out both; }
+.raffle-enter-right { animation: slideInRight var(--raffle-enter-duration) var(--raffle-ease) both; }
+.raffle-exit-left { animation: slideOutLeft var(--raffle-exit-duration) var(--raffle-ease) both; }
+.raffle-enter-left { animation: slideInLeft var(--raffle-enter-duration) var(--raffle-ease) both; }
+.raffle-exit-right { animation: slideOutRight var(--raffle-exit-duration) var(--raffle-ease) both; }
 
 .btn-float { transition: transform 150ms ease, box-shadow 150ms ease; }
 .btn-float:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,0,0,0.35); }
@@ -278,11 +286,11 @@
 
 /* Professional desktop nav arrow styling */
 .nav-arrow {
-  /* Fallback neutral background */
-  background: radial-gradient(80% 80% at 30% 30%, rgba(255,255,255,0.10), rgba(255,255,255,0.06) 55%, rgba(17,24,39,0.6) 100%);
-  /* Themed overlay using currentColor (admin primary) */
-  background: radial-gradient(80% 80% at 30% 30%, color-mix(in srgb, currentColor 22%, transparent), color-mix(in srgb, currentColor 12%, transparent) 55%, rgba(17,24,39,0.60) 100%);
-  border: 1px solid color-mix(in srgb, currentColor 40%, transparent);
+  /* Opaque enough to no ver texto debajo */
+  background-color: rgba(17,24,39,0.88);
+  /* Themed inner glow using currentColor */
+  background-image: radial-gradient(80% 80% at 30% 30%, color-mix(in srgb, currentColor 18%, transparent), color-mix(in srgb, currentColor 10%, transparent) 55%, rgba(17,24,39,0.92) 100%);
+  border: 1px solid color-mix(in srgb, currentColor 42%, transparent);
   box-shadow:
     0 10px 28px color-mix(in srgb, currentColor 25%, transparent),
     0 6px 16px rgba(0,0,0,0.35),
@@ -300,6 +308,22 @@
 .nav-arrow:active {
   transform: translateY(0) scale(0.98);
 }
+
+/* Phone select helpers */
+.phone-select { line-height: 1.1; }
+.phone-select select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
+.phone-select .chev { right: 10px; }
+
+/* Force consistent heights and clearer contrast for phone controls */
+.phone-select select, .phone-select input, .phone-select .react-select__control {
+  height: 3rem; /* 48px */
+  min-height: 3rem;
+}
+.phone-select select, .phone-select input {
+  background-color: rgba(31, 41, 55, 0.6); /* slightly darker to make the box visible */
+  border-color: rgba(148,163,184,0.24);
+}
+.phone-select .chev svg { opacity: 0.9 }
 
 /* Respect users who prefer reduced motion */
 @media (prefers-reduced-motion: reduce) {
@@ -324,7 +348,77 @@
   60% { transform: translateY(6px); }
   100% { transform: translateY(0); }
 }
-.page-nudge { animation: nudgeDown 220ms ease-out both; }
+.page-nudge { animation: nudgeDown 180ms var(--raffle-ease) both; }
+
+@keyframes nudgeDown {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(6px); opacity: 0.98; }
+  100% { transform: translateY(0); }
+}
+
+/* 3D stage + interactive card for raffles */
+.raffle-stage { perspective: 1200px; }
+.raffle-card {
+  position: relative;
+  transform-style: preserve-3d;
+  will-change: transform;
+  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 240ms ease;
+  box-shadow: 0 10px 32px rgba(0,0,0,0.35);
+  isolation: isolate; /* evita que decoraciones tapen elementos adyacentes */
+  overflow: hidden;   /* mantiene brillos y sombras dentro del contenedor */
+}
+.raffle-card:hover {
+  /* Sin zoom en hover; mantener sombra suave */
+  transform: none;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+}
+.raffle-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(420px circle at var(--hover-x, 50%) var(--hover-y, 50%), rgba(255,255,255,0.08), transparent 42%);
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+.raffle-card:hover::after { opacity: 1; }
+
+/* Swipe hint and nudge for mobile carousel */
+@keyframes swipeNudge {
+  0%, 100% { transform: translateX(0); }
+  40% { transform: translateX(-12px); }
+  70% { transform: translateX(0); }
+}
+.swipe-nudge { animation: swipeNudge 1100ms cubic-bezier(0.22, 1, 0.36, 1) 1; }
+
+@keyframes hintPulse {
+  0%, 100% { transform: translateX(0); opacity: 0.9; }
+  50% { transform: translateX(6px); opacity: 1; }
+}
+.swipe-hint {
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 1;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+  border: 1px solid rgba(255,255,255,0.12);
+  animation: hintPulse 1.6s ease-in-out 3; /* limited pulses for subtle hint */
+  opacity: 0.92;
+}
+
+/* Subtle fade utility used when cards enter to reduce visual jump */
+.raffle-fade-enter { animation: fadeInUp 360ms var(--raffle-ease) both; }
+
+/* Desktop drag UX */
+.drag-surface { cursor: grab; }
+.dragging { cursor: grabbing; user-select: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .swipe-nudge,
+  .swipe-hint { animation: none !important; }
+}
 
 /* Loading Shimmer Effect */
 .shimmer {
@@ -403,6 +497,52 @@
 .form-modern textarea {
   @apply bg-gray-800/80 text-white rounded-lg border border-gray-600 focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20 focus:outline-none transition-all duration-200 placeholder-gray-400;
 }
+
+/* Admin-specific form improvements for contrast and spacing */
+.admin-form input,
+.admin-form select,
+.admin-form textarea {
+  background: rgba(15, 23, 42, 0.75); /* slate-900-ish */
+  color: #E6EEF8; /* light text */
+  border: 1px solid rgba(148,163,184,0.12); /* subtle border */
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.6rem;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+}
+
+.admin-form label {
+  color: #cbd5e1; /* slate-300 */
+  font-size: 0.875rem;
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+.admin-form ::placeholder {
+  color: rgba(203,213,225,0.6) !important;
+}
+
+.admin-form select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 1.25rem) calc(1em + 2px), calc(100% - 0.75rem) calc(1em + 2px);
+  background-size: 0.45rem 0.45rem, 0.45rem 0.45rem;
+  background-repeat: no-repeat;
+  padding-right: 2.25rem;
+}
+
+.admin-form .form-row { margin-bottom: 0.75rem; }
+
+.admin-form .btn-ghost {
+  background: linear-gradient(90deg, rgba(99,102,241,0.08), rgba(236,72,153,0.04));
+  color: #fff;
+  padding: 0.6rem 1rem;
+  border-radius: 0.6rem;
+  border: 1px solid rgba(255,255,255,0.04);
+}
+
+.admin-form .btn-ghost:hover { filter: brightness(1.05); }
 
 /* Primary button with subtle shine */
 .btn-shine {

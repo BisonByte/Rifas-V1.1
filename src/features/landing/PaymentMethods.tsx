@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { formatCurrencyFlexible } from '@/lib/utils'
@@ -16,12 +16,13 @@ interface MetodoPago {
 
 type PaymentMethodsProps = {
   total?: number
+  usdTotal?: number
   ticketsCount?: number
   selectedId?: string
   onSelect?: (id: string) => void
 }
 
-export function PaymentMethods({ total, ticketsCount, selectedId, onSelect }: PaymentMethodsProps = {}) {
+export function PaymentMethods({ total, usdTotal, ticketsCount, selectedId, onSelect }: PaymentMethodsProps = {}) {
   const [metodos, setMetodos] = useState<MetodoPago[]>([])
   const [selectedMethod, setSelectedMethod] = useState<string>('')
   const [copyStates, setCopyStates] = useState<Record<string, boolean>>({})
@@ -76,6 +77,10 @@ export function PaymentMethods({ total, ticketsCount, selectedId, onSelect }: Pa
     try {
       const datos = JSON.parse(metodo.datos)
       const tipo = norm(metodo.tipo)
+      const preferred = (datos?.monedaVisual || '').toString().toUpperCase()
+      const typeSuggestsDollar = tipo === 'BILLETERA' || tipo === 'CRIPTOMONEDA'
+      const isDollar = preferred === 'USD' ? true : preferred === 'VES' ? false : typeSuggestsDollar
+      const amount = isDollar ? (usdTotal ?? total) : total
       
   const CopyButton = ({ value, copyKey }: { value: string; copyKey: string }) => {
         const isCopied = copyStates[copyKey]
@@ -93,7 +98,7 @@ export function PaymentMethods({ total, ticketsCount, selectedId, onSelect }: Pa
           >
             {isCopied ? (
               <span className="flex items-center space-x-1">
-                <span>✓</span>
+                <span>✔️</span>
                 <span>Copiado</span>
               </span>
             ) : (
@@ -123,7 +128,7 @@ export function PaymentMethods({ total, ticketsCount, selectedId, onSelect }: Pa
               )}
             </div>
             <div className="absolute -top-1 -right-1 bg-emerald-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center shadow-md animate-pulse">
-              <span className="text-xs">✓</span>
+              <span className="text-xs">✔️</span>
             </div>
           </div>
           <div className="mt-3 text-center">
@@ -132,11 +137,11 @@ export function PaymentMethods({ total, ticketsCount, selectedId, onSelect }: Pa
         </div>
       )
 
-      const TotalPill = total && total > 0 ? (
+      const TotalPill = amount && amount > 0 ? (
         <div className="mt-3 sm:mt-4 flex justify-center">
           <div className="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-gradient-to-r from-gray-800 to-gray-900 text-white text-xs sm:text-sm font-medium shadow-lg border border-gray-700">
             <span className="mr-1 sm:mr-2">💰</span>
-            <span className="font-bold">Total: {formatCurrencyFlexible(total, { code: 'VES', locale: 'es-VE', symbol: 'Bs.S', position: 'prefix' })}</span>
+            <span className="font-bold">Total: {formatCurrencyFlexible(amount, isDollar ? { code: 'USD', locale: 'en-US', symbol: '$', position: 'prefix' } : { code: 'VES', locale: 'es-VE', symbol: 'Bs.S', position: 'prefix' })}</span>
             {typeof ticketsCount === 'number' && ticketsCount > 0 && (
               <span className="ml-2 px-2 py-0.5 rounded-full bg-yellow-500 text-black text-[10px] sm:text-xs font-semibold">
                 {ticketsCount} ticket{ticketsCount === 1 ? '' : 's'}
@@ -232,7 +237,12 @@ export function PaymentMethods({ total, ticketsCount, selectedId, onSelect }: Pa
                     {Object.entries(datos).map(([k, v]) => (
                       <div key={k} className="bg-gray-50 rounded-xl p-3 sm:p-4 border border-gray-100">
                         <p className="text-xs font-bold tracking-widest text-gray-500 uppercase mb-1">{k}</p>
-                        <p className="text-base font-semibold text-gray-900">{String(v)}</p>
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-base font-semibold text-gray-900 break-words">{String(v)}</p>
+                          <div className="shrink-0">
+                            <CopyButton value={String(v)} copyKey={`dato-${metodo.id}-${k}`} />
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -304,7 +314,7 @@ export function PaymentMethods({ total, ticketsCount, selectedId, onSelect }: Pa
                     </div>
                     {currentSelected === metodo.id && (
                       <div className="absolute -top-1 -right-1 bg-emerald-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                        <span className="text-xs">✓</span>
+                        <span className="text-xs">✔️</span>
                       </div>
                     )}
                   </div>
@@ -336,8 +346,8 @@ export function PaymentMethods({ total, ticketsCount, selectedId, onSelect }: Pa
         {metodos.length === 0 && !loading && (
           <div className="text-center py-8 text-gray-400 bg-gray-800/50 rounded-xl border border-gray-600">
             <span className="text-4xl mb-2 block">💳</span>
-            <p className="font-semibold">No hay métodos de pago configurados</p>
-            <p className="text-sm mt-1 opacity-75">Contacta al administrador para configurar métodos de pago</p>
+            <p className="font-semibold">No hay Métodos de Pago configurados</p>
+            <p className="text-sm mt-1 opacity-75">Contacta al administrador para configurar Métodos de Pago</p>
           </div>
         )}
       </div>
@@ -345,13 +355,13 @@ export function PaymentMethods({ total, ticketsCount, selectedId, onSelect }: Pa
       {currentSelected && (
         <div className="mt-6 p-4 bg-gradient-to-r from-emerald-700 to-green-700 rounded-xl border border-emerald-600 shadow-lg">
           <div className="flex items-start space-x-3">
-            <span className="text-2xl">📱</span>
+            <span className="text-2xl">🔎</span>
             <div>
-              <p className="font-semibold text-emerald-100 mb-2">Instrucciones de Pago</p>
+              <p className="font-semibold text-emerald-100 mb-2">Instrucciones de pago</p>
               <div className="text-sm text-emerald-200 space-y-1">
                 <p>• Realiza el pago por el monto exacto mostrado</p>
                 <p>• Toma una captura del comprobante de pago</p>
-                <p>• Envía el comprobante por WhatsApp</p>
+                {/* Envío de comprobante por WhatsApp removido por solicitud */}
                 <p>• Recibirás confirmación con tus números asignados</p>
               </div>
             </div>
@@ -361,4 +371,7 @@ export function PaymentMethods({ total, ticketsCount, selectedId, onSelect }: Pa
     </div>
   )
 }
+
+
+
 

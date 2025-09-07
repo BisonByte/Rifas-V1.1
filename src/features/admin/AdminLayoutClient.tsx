@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
   Home, 
@@ -24,8 +24,10 @@ export default function AdminLayoutClient({
 }: {
   children: React.ReactNode
 }) {
+  const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
   const pathname = usePathname()
 
   // Efecto de fade-in al cargar
@@ -178,23 +180,67 @@ export default function AdminLayoutClient({
                 </button>
               </div>
               
-              {/* User Profile */}
-              <div className="flex items-center space-x-3 bg-slate-700/30 rounded-xl px-3 py-2 hover:bg-slate-700/50 transition-all duration-200 cursor-pointer group">
-                <div className="relative">
-                  <div className="w-9 h-9 bg-gradient-to-br from-teal-400 via-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg">
-                    <span className="text-white text-sm font-bold">A</span>
+              {/* User Profile + Menu */}
+              <div 
+                className="relative"
+                onMouseEnter={() => setUserMenuOpen(true)}
+                onMouseLeave={() => setUserMenuOpen(false)}
+              >
+                <div 
+                  className="flex items-center space-x-3 bg-slate-700/30 rounded-xl px-3 py-2 hover:bg-slate-700/50 transition-all duration-200 cursor-pointer group"
+                  onClick={() => setUserMenuOpen((v) => !v)}
+                  aria-haspopup="menu"
+                  aria-expanded={userMenuOpen}
+                  title="Cuenta"
+                >
+                  <div className="relative">
+                    <div className="w-9 h-9 bg-gradient-to-br from-teal-400 via-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg">
+                      <span className="text-white text-sm font-bold">A</span>
+                    </div>
+                    <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-slate-800"></div>
                   </div>
-                  <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-slate-800"></div>
+                  <div className="hidden sm:block">
+                    <p className="text-white text-sm font-medium">Admin Principal</p>
+                    <p className="text-slate-400 text-xs">Sistema activo</p>
+                  </div>
+                  <ChevronDown className={`h-4 w-4 text-slate-400 transition-all duration-200 ${userMenuOpen ? 'rotate-180 text-white' : 'group-hover:text-white'}`} />
                 </div>
-                <div className="hidden sm:block">
-                  <p className="text-white text-sm font-medium">Admin Principal</p>
-                  <p className="text-slate-400 text-xs">Sistema activo</p>
-                </div>
-                <ChevronDown className="h-4 w-4 text-slate-400 group-hover:text-white transition-colors duration-200 group-hover:rotate-180 transform transition-transform duration-200" />
+
+                {userMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-56 rounded-xl bg-slate-800/95 border border-slate-700/50 shadow-2xl p-2 z-50">
+                    <button
+                      onClick={() => { setUserMenuOpen(false); router.push('/admin/usuarios') }}
+                      className="w-full text-left px-3 py-2 rounded-lg text-slate-200 hover:bg-slate-700/60 transition-colors"
+                    >
+                      Perfil y usuarios
+                    </button>
+                    <button
+                      onClick={() => { setUserMenuOpen(false); router.push('/admin/configuracion') }}
+                      className="w-full text-left px-3 py-2 rounded-lg text-slate-200 hover:bg-slate-700/60 transition-colors"
+                    >
+                      Configuración
+                    </button>
+                    <div className="my-1 h-px bg-slate-700/60" />
+                    <button
+                      onClick={async () => {
+                        try {
+                          await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+                        } catch {}
+                        router.push('/admin/login')
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-lg text-red-300 hover:bg-red-500/10 hover:text-red-200 transition-colors"
+                    >
+                      Cerrar sesión
+                    </button>
+                  </div>
+                )}
               </div>
 
-              {/* Quick Action Button */}
-              <button className="bg-gradient-to-r from-blue-500 via-purple-500 to-teal-500 text-white px-4 py-2 rounded-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-200 transform hover:scale-105 font-medium text-sm">
+              {/* Quick Action Button: crear nueva rifa */}
+              <button
+                onClick={() => router.push('/admin/eventos/nuevo')}
+                className="bg-gradient-to-r from-blue-500 via-purple-500 to-teal-500 text-white px-4 py-2 rounded-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-200 transform hover:scale-105 font-medium text-sm"
+              >
                 <Plus className="w-4 h-4 inline mr-1" />
                 Nuevo
               </button>

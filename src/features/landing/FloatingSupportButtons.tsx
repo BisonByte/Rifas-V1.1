@@ -3,10 +3,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { TicketVerifier } from '@/features/landing/TicketVerifier'
 import { get } from '@/lib/api-client'
-import type { ApiResponse } from '@/types'
 import { sanitizeHtml } from '@/lib/sanitize'
 
-type SiteConfig = Record<string, unknown>
+type SiteConfig = Record<string, any>
 
 function classNames(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(' ')
@@ -37,7 +36,7 @@ function YouTubeEmbed({ url }: { url: string }) {
       <iframe
         src={embed}
         className="w-full h-full"
-        title="Cómo participar"
+        title="¿Cómo participar"
         frameBorder={0}
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
         allowFullScreen
@@ -56,9 +55,7 @@ function Modal({ open, onClose, children, title }: { open: boolean; onClose: () 
           <h3 className="text-lg font-bold">{title}</h3>
           <button onClick={onClose} className="rounded-full bg-white/10 hover:bg-white/20 transition p-2">✕</button>
         </div>
-        <div className="p-5">
-          {children}
-        </div>
+        <div className="p-5">{children}</div>
       </div>
     </div>
   )
@@ -70,22 +67,17 @@ export function FloatingSupportButtons() {
   const [config, setConfig] = useState<SiteConfig>({})
 
   useEffect(() => {
-      get<ApiResponse<Record<string, unknown>> | Array<{ clave: string; valor: unknown }>>('/api/configuracion')
-        .then((json) => {
-          // Tolerar ambas formas: {success, data} o lista/objeto directo
-          const maybe = (json as ApiResponse<Record<string, unknown>>)?.success
-            ? (json as ApiResponse<Record<string, unknown>>).data
-            : json
-          if (Array.isArray(maybe)) {
-            const obj: Record<string, unknown> = {}
-            for (const it of maybe as Array<{ clave: string; valor: unknown }>) {
-              obj[it.clave] = it.valor
-            }
-            setConfig(obj)
-          } else {
-            setConfig((maybe as Record<string, unknown>) || {})
-          }
-        })
+    get('/api/configuracion')
+      .then((json: any) => {
+        const maybe = (json?.success ? json.data : json) as any
+        if (Array.isArray(maybe)) {
+          const obj: Record<string, any> = {}
+          for (const it of maybe) obj[it.clave] = it.valor
+          setConfig(obj)
+        } else {
+          setConfig(maybe || {})
+        }
+      })
       .catch(() => {})
   }, [])
 
@@ -93,24 +85,23 @@ export function FloatingSupportButtons() {
 
   return (
     <>
-  {/* Right side floating row */}
-  <div className="fixed right-4 bottom-6 z-50 flex flex-row items-center gap-3">
+      {/* Right side floating row (smaller, polished, animated) */}
+  <div className="fixed right-3 z-50 flex flex-row items-center gap-2.5" style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 18px)' }}>
         {/* WhatsApp */}
         <a
           href={waUrl}
           target="_blank"
           rel="noopener noreferrer"
           className={classNames(
-    'group relative w-14 h-14 md:w-16 md:h-16 rounded-full shadow-xl shadow-black/25 transition-all duration-200',
-    'bg-gradient-to-b from-green-500 to-green-600 hover:from-green-400 hover:to-green-500',
-    'ring-4 ring-black/25',
-    'flex items-center justify-center text-white'
+            'group relative w-11 h-11 md:w-12 md:h-12 rounded-full shadow-lg shadow-black/30 transition-transform duration-200',
+            'bg-gradient-to-b from-green-500 to-green-600 hover:from-green-400 hover:to-green-500',
+            'ring-2 ring-black/25',
+            'flex items-center justify-center text-white hover:-translate-y-0.5 active:scale-95'
           )}
           title="Soporte"
-      aria-label="WhatsApp"
+          aria-label="WhatsApp"
         >
-          {/* WhatsApp SVG */}
-      <svg viewBox="0 0 24 24" aria-hidden className="w-7 h-7 md:w-8 md:h-8">
+          <svg viewBox="0 0 24 24" aria-hidden className="w-6 h-6 md:w-7 md:h-7">
             <path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
           </svg>
           <span className="pointer-events-none absolute right-full mr-2 px-2 py-1 rounded bg-black/80 text-white text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">Soporte</span>
@@ -120,15 +111,14 @@ export function FloatingSupportButtons() {
         <button
           onClick={() => setOpenVerifier(true)}
           className={classNames(
-            'group relative w-14 h-14 md:w-16 md:h-16 rounded-full shadow-xl shadow-black/25 transition-all duration-200',
+            'group relative w-11 h-11 md:w-12 md:h-12 rounded-full shadow-lg shadow-black/30 transition-transform duration-200',
             'bg-white hover:bg-red-50',
-            'ring-4 ring-black/25',
-            'flex items-center justify-center text-red-600'
+            'ring-2 ring-black/25',
+            'flex items-center justify-center text-red-600 hover:-translate-y-0.5 active:scale-95'
           )}
           title="Verificador"
         >
-          {/* Magnifier icon */}
-          <svg viewBox="0 0 24 24" className="w-7 h-7 md:w-8 md:h-8" aria-hidden>
+          <svg viewBox="0 0 24 24" className="w-6 h-6 md:w-7 md:h-7" aria-hidden>
             <path fill="currentColor" d="M16.32 14.9h-.79l-.28-.27a6.471 6.471 0 0 0 1.57-4.23A6.5 6.5 0 1 0 10.32 17c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L21.31 20zm-6 0A4.9 4.9 0 1 1 15.22 10a4.9 4.9 0 0 1-4.9 4.9z"/>
           </svg>
           <span className="pointer-events-none absolute right-full mr-2 px-2 py-1 rounded bg-black/80 text-white text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">Verificador</span>
@@ -136,13 +126,14 @@ export function FloatingSupportButtons() {
       </div>
 
       {/* Left side help button */}
-      <div className="fixed left-4 bottom-6 z-50">
+  <div className="fixed left-3 z-50" style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 18px)' }}>
         <button
           onClick={() => setOpenHelp(true)}
-          className="group relative rounded-full px-5 py-3 bg-white text-red-600 font-semibold shadow-xl transition-all hover:shadow-2xl hover:-translate-y-0.5 ring-8 ring-white/40"
+          className="group relative inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs sm:text-sm bg-white/80 backdrop-blur-md text-red-600 font-semibold shadow-lg transition-all hover:shadow-xl hover:-translate-y-0.5 active:scale-95 ring-2 ring-white/40"
         >
-          <span className="absolute inset-0 rounded-full border border-red-400/60"></span>
-          <span className="mr-2">❓</span> ¿Cómo participar?
+          <span className="absolute inset-0 rounded-full border border-red-400/40"></span>
+          <span className="text-base leading-none">?</span>
+          <span>¿Cómo participar?</span>
         </button>
       </div>
 
@@ -160,20 +151,14 @@ export function FloatingSupportButtons() {
             <>
               <YouTubeEmbed url={config.ayuda_video_url} />
               {!config.ayuda_video_url.includes('youtube') && (
-                <video
-                  className="w-full rounded-xl"
-                  src={config.ayuda_video_url}
-                  controls
-                />
+                <video className="w-full rounded-xl" src={config.ayuda_video_url} controls />
               )}
             </>
           ) : null}
           {config.ayuda_texto_html ? (
             <div
               className="prose prose-invert max-w-none"
-              dangerouslySetInnerHTML={{
-                __html: sanitizeHtml(String(config.ayuda_texto_html)),
-              }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(String(config.ayuda_texto_html)) }}
             />
           ) : !config.ayuda_video_url ? (
             <div className="text-sm text-white/90 space-y-2">
@@ -187,3 +172,4 @@ export function FloatingSupportButtons() {
     </>
   )
 }
+

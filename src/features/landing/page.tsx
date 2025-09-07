@@ -1,7 +1,6 @@
-'use client'
+﻿'use client'
 
 import { Suspense, useState, useEffect } from 'react'
-import { NewHero } from '@/features/landing/NewHero'
 import { CompraRifa } from '@/features/landing/CompraRifa'
 import { NewFooter } from '@/features/landing/NewFooter'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
@@ -27,7 +26,7 @@ export default function HomePage() {
         const data = cfgResp?.success ? cfgResp.data : cfgResp
         setConfig(data ?? {})
       } catch (error) {
-        console.error('Error cargando configuración:', error)
+  console.error('Error cargando configuración:', error)
         setConfig({})
       }
     }
@@ -68,7 +67,7 @@ export default function HomePage() {
         premios.sort((a: any, b: any) => (a.orden ?? 0) - (b.orden ?? 0))
         setPremiosPreview(premios)
       } catch (error) {
-        console.error('Error cargando estadísticas de tickets:', error)
+  console.error('Error cargando estadísticas de tickets:', error)
       }
     }
     loadStats()
@@ -121,9 +120,9 @@ export default function HomePage() {
         <div className="container mx-auto flex justify-between items-center glass-nav rounded-2xl px-4 py-3 gradient-border shadow-2xl">
           {/* Branding */}
           <a href="#inicio" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center shadow-lg ring-1 ring-white/10">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center shadow-lg ring-1 ring-white/10 overflow-hidden">
               {config?.logo_url ? (
-                <img src={config.logo_url} alt="Logo" className="max-h-10 w-auto h-auto object-contain" />
+                <img src={config.logo_url} alt="Logo" className="w-10 h-10 object-contain" />
               ) : (
                 <span className="text-xl">🍀</span>
               )}
@@ -153,18 +152,10 @@ export default function HomePage() {
       <div id="inicio" className="pt-28" />
 
   <main className="relative z-10">
-        {/* Hero Section */}
-        <Suspense fallback={<LoadingSpinner />}>
-          <NewHero
-            rifas={rifas}
-            currentIndex={currentRifaIndex}
-            onNext={nextRifa}
-            onPrev={prevRifa}
-            onSelect={selectRifa}
-          />
-        </Suspense>
+        {/* Hero eliminado: mantenemos una experiencia simple y profesional
+            Deslizamiento en móvil y flechas en escritorio se gestionan dentro de CompraRifa */}
 
-        {/* Sección principal de juego */}
+  {/* Sección principal de juego */}
   <section id="participar" className="py-10 md:py-14">
           <div className="container mx-auto px-4">
             {/* Layout responsivo: móvil estrecho, desktop ancho */}
@@ -177,14 +168,31 @@ export default function HomePage() {
                     {/* Componente integrado de compra */}
                     <Suspense fallback={<LoadingSpinner />}>
                       <CompraRifa />
-                    </Suspense>
+                    </Suspense>                    {false && rifas.length > 1 && (
+                      <div className="mt-2 flex items-center justify-center gap-2 text-white">
+                        <span className="inline-flex items-center rounded-full bg-black/60 text-white/90 text-[11px] px-2 py-0.5 ring-1 ring-white/10">
+                          {currentRifaIndex + 1} / {rifas.length}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={nextRifa}
+                          className="inline-flex items-center gap-1 rounded-full bg-black/60 text-white text-[11px] px-2.5 py-1 ring-1 ring-white/10 hover:bg-black/70 active:scale-95 transition"
+                          aria-label="Ver siguiente sorteo"
+                        >
+                          Desliza
+                          <svg viewBox="0 0 24 24" className="w-4 h-4" aria-hidden>
+                            <path fill="currentColor" d="M8.59 16.59L10 18l6-6l-6-6l-1.41 1.41L13.17 12z" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
                   </div>
                   
                   {/* Columna lateral para desktop - Info adicional */}
                   <div className="hidden lg:block space-y-6 mt-8 lg:mt-0">
                     {/* Panel de información */}
         <div className="rounded-xl p-6 card-modern">
-                      <h3 className="text-xl font-bold text-yellow-300 mb-4 flex items-center">
+                        <h3 className="text-xl font-bold text-yellow-300 mb-4 flex items-center">
                         <span className="mr-2">🎯</span>
                         ¿Cómo participar?
                       </h3>
@@ -208,34 +216,6 @@ export default function HomePage() {
                       </div>
                     </div>
 
-                    {/* Panel de estadísticas */}
-                    <div className="rounded-xl p-4 sm:p-5 card-modern">
-                      <h3 className="text-lg sm:text-xl font-bold text-yellow-300 mb-3 sm:mb-4 flex items-center">
-                        <span className="mr-2">📊</span>
-                        Estadísticas en vivo
-                      </h3>
-                      <div className="space-y-2.5 sm:space-y-3 text-[13px] sm:text-sm">
-                        <div className="flex justify-between">
-                          <span>🎫 Tickets disponibles:</span>
-                          <span className="text-green-400 font-bold">{animPct.disp}%</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>🔥 Tickets vendidos:</span>
-                          <span className="text-red-400 font-bold">{animPct.vend}%</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>⏳ Tickets reservados:</span>
-                          <span className="text-yellow-400 font-bold">{animPct.res}%</span>
-                        </div>
-                        <div className="w-full bg-gray-700/80 rounded-full h-2 mt-3 sm:mt-4 overflow-hidden">
-                          <div
-                            className="bg-gradient-to-r from-green-500 via-yellow-500 to-amber-500 h-2 rounded-full transition-[width] duration-700 ease-out"
-                            style={{ width: `${animPct.prog}%` }}
-                          ></div>
-                        </div>
-                        <p className="text-center text-[11px] sm:text-xs opacity-75">{animPct.prog}% completado</p>
-                      </div>
-                    </div>
 
                     {/* Panel de premios (solo si hay rifa activa) */}
                     {hasActiveRifa && premiosPreview.length > 0 && (
@@ -287,7 +267,7 @@ function MobileMenu() {
     <div className="md:hidden">
       <button
         onClick={() => setOpen((v) => !v)}
-        aria-label="Menú"
+  aria-label="Menú"
         className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 ring-1 ring-white/10"
       >
         <svg viewBox="0 0 24 24" className="w-6 h-6" aria-hidden>
@@ -295,18 +275,22 @@ function MobileMenu() {
         </svg>
       </button>
       {open && (
-        <div className="absolute right-4 mt-3 w-56 rounded-2xl glass-nav gradient-border p-3 shadow-2xl">
-          <nav className="flex flex-col gap-2 text-sm">
-            <a href="#inicio" onClick={() => setOpen(false)} className="px-3 py-2 rounded-lg hover:bg-white/5">Inicio</a>
-            <a href="#participar" onClick={() => setOpen(false)} className="px-3 py-2 rounded-lg hover:bg-white/5">Participar</a>
-            <a href="#verificar" onClick={() => setOpen(false)} className="px-3 py-2 rounded-lg hover:bg-white/5">Verificar</a>
-            <a href="#soporte" onClick={() => setOpen(false)} className="px-3 py-2 rounded-lg hover:bg-white/5">Soporte</a>
-            <a href="#participar" onClick={() => setOpen(false)} className="mt-1 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-black font-semibold px-3 py-2 shadow btn-shine">
-              Participar ahora
-            </a>
-          </nav>
+        <div className="fixed inset-0 z-40" onClick={() => setOpen(false)}>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div id="mobile-menu-panel" className="absolute inset-x-3 top-20 rounded-2xl glass-nav gradient-border p-3 shadow-2xl z-50 max-h-[70vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
+            <nav className="flex flex-col gap-2 text-sm">
+              <a href="#inicio" onClick={() => setOpen(false)} className="px-3 py-2 rounded-lg hover:bg-white/5">Inicio</a>
+              <a href="#participar" onClick={() => setOpen(false)} className="px-3 py-2 rounded-lg hover:bg-white/5">Participar</a>
+              <a href="#verificar" onClick={() => setOpen(false)} className="px-3 py-2 rounded-lg hover:bg-white/5">Verificar</a>
+              <a href="#soporte" onClick={() => setOpen(false)} className="px-3 py-2 rounded-lg hover:bg-white/5">Soporte</a>
+              <a href="#participar" onClick={() => setOpen(false)} className="mt-1 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-black font-semibold px-3 py-2 shadow btn-shine">
+                Participar ahora
+              </a>
+            </nav>
+          </div>
         </div>
       )}
     </div>
   )
 }
+

@@ -77,16 +77,16 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const currentUser = await requireAuth(request)
-  if (!currentUser || !isAdmin(currentUser)) {
-    return NextResponse.json(
-      { success: false, error: 'Acceso denegado' },
-      { status: 403 }
-    )
-  }
+  try {
+    const currentUser = await requireAuth(request)
+    if (!currentUser || !isAdmin(currentUser)) {
+      return NextResponse.json(
+        { success: false, error: 'Acceso denegado' },
+        { status: 403 }
+      )
+    }
 
-  const transaction = await prisma.$transaction(async (tx: any) => {
-    try {
+    const transaction = await prisma.$transaction(async (tx: any) => {
       const body = await request.json()
       const { compraId, accion, comentarios } = VerificarPagoSchema.parse(body)
       const adminId = currentUser.id
@@ -177,6 +177,8 @@ export async function POST(request: NextRequest) {
       // Registro de auditoría
       await tx.auditLog.create({
         data: {
+          // `evento` es requerido por el modelo de Prisma
+          evento: `VERIFICACION_${accion}`,
           accion: `VERIFICACION_${accion}`,
           entidad: 'COMPRA',
           entidadId: compraId,
@@ -201,12 +203,12 @@ export async function POST(request: NextRequest) {
           tickets: compra.tickets.length
         }
       }
-      
-    } catch (error) {
-      console.error('Error en verificación:', error)
-      throw error
-    }
-  })
-  
-  return NextResponse.json(transaction)
+    })
+
+    return NextResponse.json(transaction)
+  } catch (error: any) {
+    console.error('Error en POST /api/admin/verificar-pagos:', error)
+    const message = error?.message || 'Error interno del servidor'
+    return NextResponse.json({ success: false, error: message }, { status: 500 })
+  }
 }

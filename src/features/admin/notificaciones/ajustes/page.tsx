@@ -4,29 +4,10 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { get, put, post } from '@/lib/api-client'
-import type { ApiResponse } from '@/types'
 import { CONFIG } from '@/lib/config'
 
-  interface EmailTemplate { subject?: string; body?: string }
-  interface SmsTemplate { body?: string }
-
-  interface ConfigData {
-    SMTP_ENABLED?: boolean | string
-    SMS_ENABLED?: boolean | string
-    EMAIL_TEMPLATES?: Record<string, EmailTemplate>
-    SMS_TEMPLATES?: Record<string, SmsTemplate>
-    [key: string]: unknown
-  }
-
-  interface AuthMeResponse {
-    success: boolean
-    user?: {
-      id: string
-      nombre: string
-      email: string
-      rol: string
-    }
-  }
+interface EmailTemplate { subject?: string; body?: string }
+interface SmsTemplate { body?: string }
 
 export default function NotificacionesAjustesPage() {
   const tipos = CONFIG.NOTIFICACIONES.TIPOS_VALIDOS
@@ -40,8 +21,8 @@ export default function NotificacionesAjustesPage() {
   useEffect(() => {
     const cargar = async () => {
       try {
-          const configResp = await get<ApiResponse<ConfigData>>('/api/admin/configuracion')
-          const data = configResp.data ?? {}
+        const configResp = await get<any>('/api/admin/configuracion')
+        const data = configResp.data || configResp
         setSmtpEnabled(data.SMTP_ENABLED === true || data.SMTP_ENABLED === 'true')
         setSmsEnabled(data.SMS_ENABLED === true || data.SMS_ENABLED === 'true')
         setEmailTemplates(data.EMAIL_TEMPLATES || {})
@@ -50,7 +31,7 @@ export default function NotificacionesAjustesPage() {
         console.error('Error cargando configuración', err)
       }
       try {
-          const me = await get<AuthMeResponse>('/api/auth/me')
+        const me = await get<any>('/api/auth/me')
         if (me.success && me.user?.email) setTestEmail(me.user.email)
       } catch {}
     }

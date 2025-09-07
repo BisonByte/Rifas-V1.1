@@ -10,7 +10,7 @@ async function main() {
     const metodosPago = [
       {
         nombre: 'Pago Móvil Banesco',
-        tipo: 'pago_movil',
+        tipo: 'PAGO_MOVIL',
         descripcion: 'Transferencia desde cualquier banco',
         activo: true,
         orden: 1,
@@ -21,7 +21,7 @@ async function main() {
       },
       {
         nombre: 'Transferencia Mercantil',
-        tipo: 'transferencia',
+        tipo: 'BANCO',
         descripcion: 'Transferencia bancaria Mercantil',
         activo: true,
         orden: 2,
@@ -31,7 +31,7 @@ async function main() {
       },
       {
         nombre: 'Zelle',
-        tipo: 'zelle',
+        tipo: 'BILLETERA',
         descripcion: 'Pagos vía Zelle',
         activo: true,
         orden: 3,

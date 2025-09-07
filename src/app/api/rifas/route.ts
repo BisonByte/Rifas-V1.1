@@ -29,6 +29,7 @@ const RifaSchema = z.object({
   portadaUrl: PortadaUrlSchema,
   fechaSorteo: z.coerce.date(),
   precioPorBoleto: z.number().min(0.01).max(10000),
+  precioUSD: z.number().min(0.01).max(10000).optional(),
   // Limitar a 10,000 para respetar rango 0000–9999
   totalBoletos: z.number().min(1, 'Debe ser al menos 1').max(10000, 'Máximo 10,000 (0000–9999)'),
   // Límite por persona deshabilitado: mantener opcional sin validar límites estrictos
@@ -149,6 +150,7 @@ export async function POST(request: NextRequest) {
         portadaUrl: rifaData.portadaUrl,
         fechaSorteo: rifaData.fechaSorteo,
         precioPorBoleto: rifaData.precioPorBoleto,
+        precioUSD: rifaData.precioUSD,
         totalBoletos: rifaData.totalBoletos,
         // Campo opcional; si no se envía, quedará null
         limitePorPersona: rifaData.limitePorPersona,

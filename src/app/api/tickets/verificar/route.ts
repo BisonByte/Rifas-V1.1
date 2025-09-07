@@ -6,14 +6,14 @@ import { z } from 'zod'
 export const dynamic = 'force-dynamic'
 
 const VerificarSchema = z.object({
-  tipo: z.enum(['numero', 'celular']),
+  tipo: z.enum(['numero', 'celular', 'cedula', 'referencia']),
   valor: z.string().min(1),
   rifaId: z.string().cuid().optional()
 })
 
 /**
  * GET /api/tickets/verificar
- * Verificar tickets por número o celular
+ * Verificar tickets por: número, celular, cédula o referencia de compra
  */
 export async function GET(request: NextRequest) {
   try {
@@ -118,6 +118,82 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    // Buscar por cédula del participante
+    if (tipo === 'cedula') {
+      try {
+        const tickets = await prisma.ticket.findMany({
+          where: {
+            participante: { cedula: valor },
+            ...(rifaId && { rifaId })
+          },
+          include: {
+            participante: { select: { nombre: true, celular: true, email: true, cedula: true } },
+            rifa: { select: { nombre: true, fechaSorteo: true, estado: true } }
+          },
+          orderBy: [ { rifa: { fechaSorteo: 'desc' } }, { numero: 'asc' } ]
+        })
+
+        if (tickets.length === 0) {
+          return NextResponse.json(
+            { success: false, error: 'No se encontraron tickets para esta cédula' },
+            { status: 404 }
+          )
+        }
+
+        return NextResponse.json({
+          success: true,
+          tickets: tickets.map(t => ({
+            id: t.id,
+            numero: t.numero,
+            estado: t.estado,
+            rifa: t.rifa,
+            participante: t.participante
+          }))
+        })
+      } catch (err: any) {
+        const msg = String(err?.message || '')
+        if (msg.includes('no such column') || msg.includes('Unknown column') || msg.includes('Unknown arg `cedula`')) {
+          return NextResponse.json(
+            { success: false, error: 'La verificación por cédula no está disponible en este momento. Intente por voucher.' },
+            { status: 501 }
+          )
+        }
+        throw err
+      }
+    }
+
+    // Buscar por referencia (voucher) de compra
+    if (tipo === 'referencia') {
+      const compra = await prisma.compra.findFirst({
+        where: { referencia: valor },
+        include: {
+          tickets: { select: { numero: true, estado: true }, orderBy: { numero: 'asc' } },
+          rifa: { select: { nombre: true, fechaSorteo: true } },
+          participante: { select: { nombre: true, celular: true, cedula: true } }
+        }
+      })
+
+      if (!compra) {
+        return NextResponse.json(
+          { success: false, error: 'Referencia no encontrada' },
+          { status: 404 }
+        )
+      }
+
+      return NextResponse.json({
+        success: true,
+        compra: {
+          id: compra.id,
+          estadoPago: compra.estadoPago,
+          rifa: compra.rifa,
+          participante: compra.participante,
+          referencia: compra.referencia,
+          tickets: compra.tickets
+        },
+        tickets: compra.tickets
+      })
+    }
+
     return NextResponse.json(
       { success: false, error: 'Tipo de verificación no válido' },
       { status: 400 }
@@ -134,7 +210,7 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/tickets/verificar
- * Verificar tickets por número o celular (método POST)
+ * Verificar tickets por número, celular, cédula o referencia (método POST)
  */
 export async function POST(request: NextRequest) {
   try {
@@ -230,6 +306,80 @@ export async function POST(request: NextRequest) {
           rifa: ticket.rifa,
           participante: ticket.participante
         }))
+      })
+    }
+
+    if (tipo === 'cedula') {
+      try {
+        const tickets = await prisma.ticket.findMany({
+          where: {
+            participante: { cedula: valor },
+            ...(rifaId && { rifaId })
+          },
+          include: {
+            participante: { select: { nombre: true, celular: true, email: true, cedula: true } },
+            rifa: { select: { nombre: true, fechaSorteo: true, estado: true } }
+          },
+          orderBy: [ { rifa: { fechaSorteo: 'desc' } }, { numero: 'asc' } ]
+        })
+
+        if (tickets.length === 0) {
+          return NextResponse.json(
+            { success: false, error: 'No se encontraron tickets para esta cédula' },
+            { status: 404 }
+          )
+        }
+
+        return NextResponse.json({
+          success: true,
+          tickets: tickets.map(t => ({
+            id: t.id,
+            numero: t.numero,
+            estado: t.estado,
+            rifa: t.rifa,
+            participante: t.participante
+          }))
+        })
+      } catch (err: any) {
+        const msg = String(err?.message || '')
+        if (msg.includes('no such column') || msg.includes('Unknown column') || msg.includes('Unknown arg `cedula`')) {
+          return NextResponse.json(
+            { success: false, error: 'La verificación por cédula no está disponible en este momento. Intente por voucher.' },
+            { status: 501 }
+          )
+        }
+        throw err
+      }
+    }
+
+    if (tipo === 'referencia') {
+      const compra = await prisma.compra.findFirst({
+        where: { referencia: valor },
+        include: {
+          tickets: { select: { numero: true, estado: true }, orderBy: { numero: 'asc' } },
+          rifa: { select: { nombre: true, fechaSorteo: true } },
+          participante: { select: { nombre: true, celular: true, cedula: true } }
+        }
+      })
+
+      if (!compra) {
+        return NextResponse.json(
+          { success: false, error: 'Referencia no encontrada' },
+          { status: 404 }
+        )
+      }
+
+      return NextResponse.json({
+        success: true,
+        compra: {
+          id: compra.id,
+          estadoPago: compra.estadoPago,
+          rifa: compra.rifa,
+          participante: compra.participante,
+          referencia: compra.referencia,
+          tickets: compra.tickets
+        },
+        tickets: compra.tickets
       })
     }
 

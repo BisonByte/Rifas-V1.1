@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Use a non-dotted dist directory to avoid OneDrive file locking issues on Windows
-  distDir: 'next',
+  // Usar el directorio por defecto para assets de Next (_next)
+  // Evita 404 de /_next/static en desarrollo
   eslint: {
     // Don't fail production builds on ESLint warnings/errors. We keep linting for dev.
     ignoreDuringBuilds: true,

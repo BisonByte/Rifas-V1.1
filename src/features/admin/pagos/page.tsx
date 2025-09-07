@@ -9,7 +9,7 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import { get, post } from '@/lib/api-client'
 import { AdminHeader } from '@/features/admin/ui/AdminHeader'
 import { AdminSection } from '@/features/admin/ui/AdminSection'
-import {
+import { 
   Search,
   Filter,
   CheckCircle,
@@ -19,7 +19,6 @@ import {
   Download,
   CreditCard
 } from 'lucide-react'
-import { EstadoPago } from '@prisma/client'
 
 interface Pago {
   id: string
@@ -34,7 +33,7 @@ interface Pago {
   monto: number
   metodoPago: string
   referencia: string
-  estado: EstadoPago
+  estado: 'PENDIENTE' | 'CONFIRMADO' | 'RECHAZADO'
   fechaCreacion: string
   tickets: number[]
   comprobante?: string
@@ -70,11 +69,11 @@ export default function PagosPage() {
         metodoPago: p.metodoPago || '',
         referencia: p.numeroReferencia || '',
         estado:
-          p.estadoPago === EstadoPago.CONFIRMADO
-            ? EstadoPago.CONFIRMADO
-            : p.estadoPago === EstadoPago.RECHAZADO
-              ? EstadoPago.RECHAZADO
-              : EstadoPago.PENDIENTE,
+          p.estadoPago === 'CONFIRMADO'
+            ? 'CONFIRMADO'
+            : p.estadoPago === 'RECHAZADO'
+            ? 'RECHAZADO'
+            : 'PENDIENTE',
         fechaCreacion: p.fechaCreacion || p.createdAt,
         tickets: p.numerosTickets || p.tickets || [],
         comprobante: p.comprobante || undefined
@@ -94,13 +93,13 @@ export default function PagosPage() {
   const [filtroEstado, setFiltroEstado] = useState<string>('TODOS')
   const [searchTerm, setSearchTerm] = useState('')
 
-  const getEstadoBadge = (estado: EstadoPago) => {
+  const getEstadoBadge = (estado: string) => {
     switch (estado) {
-      case EstadoPago.PENDIENTE:
+      case 'PENDIENTE':
         return <Badge className="bg-yellow-500 text-black flex items-center"><Clock className="h-3 w-3 mr-1" />Pendiente</Badge>
-      case EstadoPago.CONFIRMADO:
+      case 'CONFIRMADO':
         return <Badge className="bg-green-500 text-white flex items-center"><CheckCircle className="h-3 w-3 mr-1" />Confirmado</Badge>
-      case EstadoPago.RECHAZADO:
+      case 'RECHAZADO':
         return <Badge className="bg-red-500 text-white flex items-center"><XCircle className="h-3 w-3 mr-1" />Rechazado</Badge>
       default:
         return <Badge className="bg-gray-500 text-white">{estado}</Badge>
@@ -143,13 +142,13 @@ export default function PagosPage() {
             : 'Pago rechazado correctamente',
       })
     } catch (err: any) {
+      console.error('Error ejecutando acción de verificación:', err)
+      // Si el error es HttpError con detalles, intentar mostrarlos
+      const message = err?.message || (accion === 'APROBAR' ? 'Error al confirmar el pago' : 'Error al rechazar el pago')
+      const details = err?.details || err?.detalles || null
       setActionMessage({
         type: 'error',
-        text:
-          err.message ||
-          (accion === 'APROBAR'
-            ? 'Error al confirmar el pago'
-            : 'Error al rechazar el pago'),
+        text: details ? `${message}: ${JSON.stringify(details)}` : message,
       })
     }
       setActionLoadingId(null)
@@ -203,9 +202,9 @@ export default function PagosPage() {
 
   const contadorEstados = {
     TODOS: pagos.length,
-    PENDIENTE: pagos.filter(p => p.estado === EstadoPago.PENDIENTE).length,
-    CONFIRMADO: pagos.filter(p => p.estado === EstadoPago.CONFIRMADO).length,
-    RECHAZADO: pagos.filter(p => p.estado === EstadoPago.RECHAZADO).length
+    PENDIENTE: pagos.filter(p => p.estado === 'PENDIENTE').length,
+    CONFIRMADO: pagos.filter(p => p.estado === 'CONFIRMADO').length,
+    RECHAZADO: pagos.filter(p => p.estado === 'RECHAZADO').length
   }
 
   return (
@@ -424,7 +423,7 @@ export default function PagosPage() {
                           <Eye className="h-4 w-4 mr-2" />
                           Ver
                         </Button>
-                        {pago.estado === EstadoPago.PENDIENTE && (
+                        {pago.estado === 'PENDIENTE' && (
                           <>
                             <Button 
                               size="sm" 
@@ -526,7 +525,7 @@ export default function PagosPage() {
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-6">
-              {selectedPago.estado === EstadoPago.PENDIENTE && (
+              {selectedPago.estado === 'PENDIENTE' && (
                 <>
                   <Button
                     className="bg-green-600 hover:bg-green-700 text-white"

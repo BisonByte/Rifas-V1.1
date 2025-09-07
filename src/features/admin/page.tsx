@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/badge'
 import { 
@@ -31,6 +32,7 @@ interface EventoResumen {
 }
 
 export default function DashboardPage() {
+  const router = useRouter()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [eventosTop, setEventosTop] = useState<EventoResumen[]>([])
   const [loading, setLoading] = useState(true)
@@ -265,19 +267,19 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent className="p-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <button className="p-4 bg-gradient-to-br from-blue-500/20 to-blue-600/10 hover:from-blue-500/30 hover:to-blue-600/20 border border-blue-500/20 rounded-xl transition-all duration-300 transform hover:scale-105 group">
+            <button onClick={() => router.push('/admin/eventos/nuevo')} className="p-4 bg-gradient-to-br from-blue-500/20 to-blue-600/10 hover:from-blue-500/30 hover:to-blue-600/20 border border-blue-500/20 rounded-xl transition-all duration-300 transform hover:scale-105 group">
               <Calendar className="h-8 w-8 text-blue-400 mx-auto mb-2 group-hover:scale-110 transition-transform duration-200" />
               <p className="text-white font-medium">Crear Evento</p>
             </button>
-            <button className="p-4 bg-gradient-to-br from-green-500/20 to-green-600/10 hover:from-green-500/30 hover:to-green-600/20 border border-green-500/20 rounded-xl transition-all duration-300 transform hover:scale-105 group">
+            <button onClick={() => router.push('/admin/participantes')} className="p-4 bg-gradient-to-br from-green-500/20 to-green-600/10 hover:from-green-500/30 hover:to-green-600/20 border border-green-500/20 rounded-xl transition-all duration-300 transform hover:scale-105 group">
               <Users className="h-8 w-8 text-green-400 mx-auto mb-2 group-hover:scale-110 transition-transform duration-200" />
               <p className="text-white font-medium">Ver Participantes</p>
             </button>
-            <button className="p-4 bg-gradient-to-br from-purple-500/20 to-purple-600/10 hover:from-purple-500/30 hover:to-purple-600/20 border border-purple-500/20 rounded-xl transition-all duration-300 transform hover:scale-105 group">
+            <button onClick={() => router.push('/admin/tickets')} className="p-4 bg-gradient-to-br from-purple-500/20 to-purple-600/10 hover:from-purple-500/30 hover:to-purple-600/20 border border-purple-500/20 rounded-xl transition-all duration-300 transform hover:scale-105 group">
               <Ticket className="h-8 w-8 text-purple-400 mx-auto mb-2 group-hover:scale-110 transition-transform duration-200" />
               <p className="text-white font-medium">Gestionar Tickets</p>
             </button>
-            <button className="p-4 bg-gradient-to-br from-yellow-500/20 to-orange-600/10 hover:from-yellow-500/30 hover:to-orange-600/20 border border-yellow-500/20 rounded-xl transition-all duration-300 transform hover:scale-105 group">
+            <button onClick={() => router.push('/admin/reportes')} className="p-4 bg-gradient-to-br from-yellow-500/20 to-orange-600/10 hover:from-yellow-500/30 hover:to-orange-600/20 border border-yellow-500/20 rounded-xl transition-all duration-300 transform hover:scale-105 group">
               <Eye className="h-8 w-8 text-yellow-400 mx-auto mb-2 group-hover:scale-110 transition-transform duration-200" />
               <p className="text-white font-medium">Ver Reportes</p>
             </button>

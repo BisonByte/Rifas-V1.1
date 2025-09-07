@@ -27,6 +27,7 @@ export default function EditarEventoPage() {
           descripcion: r.descripcion,
           fechaSorteo: r.fechaSorteo ? new Date(r.fechaSorteo).toISOString().slice(0,16) : '',
           precioPorBoleto: r.precioPorBoleto,
+          precioUSD: r.precioUSD ?? 0,
           totalBoletos: r.totalBoletos,
           limitePorPersona: r.limitePorPersona ?? 10,
           tiempoReserva: r.tiempoReserva ?? 30,
@@ -91,9 +92,19 @@ export default function EditarEventoPage() {
                 <label className="block text-slate-300 mb-1">Descripción</label>
                 <textarea name="descripcion" value={form.descripcion} onChange={onChange} className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white" />
               </div>
-              <div>
-                <label className="block text-slate-300 mb-1">Precio por boleto</label>
-                <input type="number" step="0.01" name="precioPorBoleto" value={form.precioPorBoleto} onChange={onChange} className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white" />
+              <div className="md:col-span-2">
+                <label className="block text-slate-300 mb-2">Precio por boleto</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-400 text-xs mb-1">Bolívares (VES)</label>
+                    <input type="number" step="0.01" name="precioPorBoleto" value={form.precioPorBoleto} onChange={onChange} className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 text-xs mb-1">Dólares (USD) <span className="text-slate-500">(opcional)</span></label>
+                    <input type="number" step="0.01" name="precioUSD" value={form.precioUSD} onChange={onChange} className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white" />
+                    <p className="text-xs text-slate-400 mt-1">Se mostrará para pagos por Zelle o Criptomonedas.</p>
+                  </div>
+                </div>
               </div>
               <div>
                 <label className="block text-slate-300 mb-1">Total de boletos</label>

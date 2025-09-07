@@ -10,7 +10,7 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import { get, del } from '@/lib/api-client'
 import { AdminHeader } from '@/features/admin/ui/AdminHeader'
 import { AdminSection } from '@/features/admin/ui/AdminSection'
-import {
+import { 
   Plus,
   Search,
   Filter,
@@ -23,7 +23,6 @@ import {
   Calendar,
   Eye
 } from 'lucide-react'
-import { RolUsuario } from '@prisma/client'
 
 // Modelo de UI para usuarios en esta página
 interface UsuarioUI {
@@ -31,7 +30,7 @@ interface UsuarioUI {
   nombre: string
   email: string
   // Roles reales del backend
-  rol: RolUsuario
+  rol: 'SUPER_ADMIN' | 'ADMIN' | 'VENDEDOR' | 'AUDITOR'
   estado: 'ACTIVO' | 'INACTIVO' | 'SUSPENDIDO'
   fechaCreacion: string
   ultimoAcceso: string
@@ -58,7 +57,7 @@ export default function UsuariosPage() {
           id: u.id,
           nombre: u.nombre,
           email: u.email,
-          rol: (u.rol as RolUsuario) ?? RolUsuario.VENDEDOR,
+          rol: (u.rol as UsuarioUI['rol']) ?? 'VENDEDOR',
           estado: u.activo === false ? 'INACTIVO' : 'ACTIVO',
           fechaCreacion: u.createdAt ?? new Date().toISOString(),
           ultimoAcceso: u.updatedAt ?? u.createdAt ?? new Date().toISOString(),
@@ -80,13 +79,13 @@ export default function UsuariosPage() {
 
   const getRolBadge = (rol: UsuarioUI['rol']) => {
     switch (rol) {
-      case RolUsuario.SUPER_ADMIN:
+      case 'SUPER_ADMIN':
         return <Badge className="bg-red-600 text-white flex items-center"><Shield className="h-3 w-3 mr-1" />Super Admin</Badge>
-      case RolUsuario.ADMIN:
+      case 'ADMIN':
         return <Badge className="bg-red-500 text-white flex items-center"><Shield className="h-3 w-3 mr-1" />Admin</Badge>
-      case RolUsuario.AUDITOR:
+      case 'AUDITOR':
         return <Badge className="bg-blue-500 text-white flex items-center"><Shield className="h-3 w-3 mr-1" />Auditor</Badge>
-      case RolUsuario.VENDEDOR:
+      case 'VENDEDOR':
         return <Badge className="bg-green-600 text-white flex items-center"><User className="h-3 w-3 mr-1" />Vendedor</Badge>
       default:
         return <Badge className="bg-gray-500 text-white">{rol}</Badge>
@@ -95,10 +94,10 @@ export default function UsuariosPage() {
 
   const getRolLabel = (rol: UsuarioUI['rol']) => {
     switch (rol) {
-      case RolUsuario.SUPER_ADMIN: return 'SUPER_ADMIN'
-      case RolUsuario.ADMIN: return 'ADMIN'
-      case RolUsuario.AUDITOR: return 'AUDITOR'
-      case RolUsuario.VENDEDOR: return 'VENDEDOR'
+      case 'SUPER_ADMIN': return 'SUPER_ADMIN'
+      case 'ADMIN': return 'ADMIN'
+      case 'AUDITOR': return 'AUDITOR'
+      case 'VENDEDOR': return 'VENDEDOR'
     }
   }
 
@@ -136,10 +135,10 @@ export default function UsuariosPage() {
 
   const contadorRoles: Record<string, number> = {
     TODOS: usuarios.length,
-    SUPER_ADMIN: usuarios.filter(u => u.rol === RolUsuario.SUPER_ADMIN).length,
-    ADMIN: usuarios.filter(u => u.rol === RolUsuario.ADMIN).length,
-    AUDITOR: usuarios.filter(u => u.rol === RolUsuario.AUDITOR).length,
-    VENDEDOR: usuarios.filter(u => u.rol === RolUsuario.VENDEDOR).length,
+    SUPER_ADMIN: usuarios.filter(u => u.rol === 'SUPER_ADMIN').length,
+    ADMIN: usuarios.filter(u => u.rol === 'ADMIN').length,
+    AUDITOR: usuarios.filter(u => u.rol === 'AUDITOR').length,
+    VENDEDOR: usuarios.filter(u => u.rol === 'VENDEDOR').length,
   }
 
   const contadorEstados = {

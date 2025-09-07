@@ -99,7 +99,7 @@ async function seedConfiguration() {
     const metodosPago = [
       {
         nombre: 'BANCO NACIONAL DE CRÉDITO',
-        tipo: 'banco',
+        tipo: 'BANCO',
         descripcion: 'Transferencia bancaria',
         numeroCuenta: '0191-0000-00-0000000000',
         tipoCuenta: 'Corriente',
@@ -109,7 +109,7 @@ async function seedConfiguration() {
       },
       {
         nombre: 'Pago Móvil',
-        tipo: 'pago_movil',
+        tipo: 'PAGO_MOVIL',
         descripcion: 'Pago móvil interbancario',
         telefono: '04244561308',
         cedula: 'V-12345678',

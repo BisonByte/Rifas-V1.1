@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyJWT, generateJWT, isRefreshTokenValid, saveRefreshToken, deleteRefreshToken } from '@/lib/auth'
-import { RolUsuario } from '@prisma/client'
 
 // Force dynamic rendering for API routes
 export const dynamic = 'force-dynamic'
@@ -39,7 +38,7 @@ export async function POST(request: NextRequest) {
       id: payload.sub,
       nombre: payload.nombre,
       email: payload.email,
-      rol: payload.rol as RolUsuario
+      rol: payload.rol as 'SUPER_ADMIN' | 'ADMIN' | 'VENDEDOR' | 'AUDITOR'
     }
 
     const newAccessToken = await generateJWT(user, '15m', 'access')

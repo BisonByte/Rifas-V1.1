@@ -38,4 +38,17 @@ Sistema profesional de rifas y sorteos desarrollado con [Next.js](https://nextjs
  npx tsx scripts/create-admin.ts
 
 # Ejecutar en modo desarrollo
- npm run dev
+npm run dev
+
+## Variables de entorno
+
+- DATABASE_URL: cadena de conexión (ej. `file:./dev.db` para SQLite).
+- JWT_SECRET: secreto para firmar JWT del backend.
+- NEXT_PUBLIC_BASE_URL: URL pública del sitio (ej. `http://localhost:3000`).
+- SMTP_HOST/SMTP_PORT/SMTP_USER/SMTP_PASSWORD/FROM_EMAIL: configuración SMTP para enviar correos (opcional).
+- PAYPAL_CLIENT_ID/PAYPAL_CLIENT_SECRET/PAYPAL_ENV: credenciales PayPal (opcional; `PAYPAL_ENV` = `sandbox` | `live`).
+- LOG_LEVEL: `ERROR` | `WARN` | `INFO` (opcional).
+
+Notas:
+- Variables `NEXTAUTH_*` no son usadas por este proyecto (autenticación JWT propia).
+- Revisa `.env.example` para un ejemplo completo.

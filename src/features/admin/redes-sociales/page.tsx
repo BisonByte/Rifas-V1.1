@@ -106,6 +106,18 @@ export default function RedesSocialesPage() {
     }
   }
 
+  const displayIcon = (val?: string) => {
+    const v = (val || '').trim()
+    if (!v) return '🔗'
+    // Si el texto es muy largo (alguien puso "instagram"), mostramos solo un símbolo genérico
+    if (v.length > 3) return '🔗'
+    return v
+  }
+
+  const copiar = async (text: string) => {
+    try { await navigator.clipboard?.writeText(text) } catch {}
+  }
+
   const redesPredefinidas = [
     { nombre: 'WhatsApp', icono: '📱' },
     { nombre: 'Instagram', icono: '📷' },
@@ -145,38 +157,50 @@ export default function RedesSocialesPage() {
         {/* Grid de redes sociales */}
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {redes.map((red) => (
-      <Card key={red.id} className="overflow-hidden transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-xl">
-              <div className={`p-4 ${red.activo ? 'bg-gradient-to-r from-fuchsia-600 to-purple-700' : 'bg-slate-700/70'}`}>
+      <Card key={red.id} className="overflow-hidden border border-slate-700/60 bg-slate-850/60 shadow-lg">
+              <div className={`${red.activo ? 'bg-gradient-to-r from-fuchsia-600 to-purple-700' : 'bg-slate-700/70'} p-4` }>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <span className="text-3xl bg-white/10 p-2 rounded-lg">{red.icono}</span>
+                    <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center text-2xl select-none">
+                      {displayIcon(red.icono)}
+                    </div>
                     <div className="min-w-0">
-                      <h3 className="font-semibold text-white text-lg truncate">{red.nombre}</h3>
-                      <p className="text-white/80 text-xs truncate max-w-[220px]">{red.url}</p>
+                      <h3 className="font-semibold text-white text-base truncate">{red.nombre}</h3>
+                      <a href={red.url} target="_blank" rel="noopener noreferrer" className="text-white/85 text-[11px] underline underline-offset-2 truncate block max-w-[240px]">{red.url}</a>
                     </div>
                   </div>
                   <button
                     onClick={() => toggleActivo(red.id, !red.activo)}
-                    className={`text-xs px-2 py-1 rounded-md border backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-400/30 ${red.activo ? 'bg-white/20 text-white border-white/20' : 'bg-slate-800/50 text-slate-300 border-slate-600/40'}`}
+                    className={`text-[11px] px-2 py-1 rounded-md border focus:outline-none focus:ring-2 transition-colors ${red.activo ? 'bg-white/20 text-white border-white/20' : 'bg-slate-800/70 text-slate-200 border-slate-600/40'}`}
+                    title={red.activo ? 'Desactivar' : 'Activar'}
                   >
                     {red.activo ? 'Activo' : 'Inactivo'}
                   </button>
                 </div>
               </div>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="text-xs text-slate-300 break-all flex-1">
-                    <div className="opacity-70">URL</div>
-                    <div className="font-mono text-slate-200/90 mt-0.5">{red.url}</div>
+              <CardContent className="p-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 text-[12px] text-slate-300 truncate">
+                    <span className="opacity-70 mr-2">URL</span>
+                    <code className="text-slate-200/90">{red.url}</code>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => editarRed(red)} className="border-slate-600/50 text-slate-200 hover:bg-slate-700/40">✏️</Button>
+                    <Button size="sm" variant="outline" onClick={() => window.open(red.url, '_blank')} className="border-slate-600/50 text-slate-200 hover:bg-slate-700/40" title="Abrir">
+                      ↗
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => copiar(red.url)} className="border-slate-600/50 text-slate-200 hover:bg-slate-700/40" title="Copiar">
+                      ⧉
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => editarRed(red)} className="border-slate-600/50 text-slate-200 hover:bg-slate-700/40" title="Editar">
+                      ✏️
+                    </Button>
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => eliminarRed(red.id)}
                       className="border-red-600/40 text-red-300 hover:bg-red-600/10"
                       disabled={deletingId === red.id}
+                      title="Eliminar"
                     >
                       {deletingId === red.id ? <LoadingSpinner className="h-4 w-4" /> : '🗑️'}
                     </Button>

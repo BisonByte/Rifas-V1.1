@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { RolUsuario } from '@prisma/client'
 
 // Esquemas de validación para el formulario de compra
 export const CompraFormSchema = z.object({
@@ -18,8 +17,8 @@ export type CompraFormData = z.infer<typeof CompraFormSchema>
 
 // Esquema para verificación de tickets
 export const VerificacionSchema = z.object({
-  busqueda: z.string().min(1, 'Ingrese un número de ticket o celular'),
-  tipo: z.enum(['ticket', 'celular'])
+  busqueda: z.string().min(1, 'Ingrese cédula o voucher'),
+  tipo: z.enum(['cedula', 'voucher'])
 })
 
 export type VerificacionData = z.infer<typeof VerificacionSchema>
@@ -71,7 +70,7 @@ export const UsuarioSchema = z.object({
   email: z.string().email('Email inválido'),
   celular: z.string().optional(),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-  rol: z.nativeEnum(RolUsuario).default(RolUsuario.VENDEDOR),
+  rol: z.enum(['SUPER_ADMIN', 'ADMIN', 'VENDEDOR', 'AUDITOR']).default('VENDEDOR'),
   activo: z.boolean().default(true)
 })
 

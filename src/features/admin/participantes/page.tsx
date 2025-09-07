@@ -23,6 +23,7 @@ import {
   Users,
   Ticket
 } from 'lucide-react'
+import type { Rifa } from '@/types'
 
 interface Participante {
   id: string
@@ -46,21 +47,32 @@ export default function ParticipantesPage() {
     { type: 'success' | 'error'; text: string } | null
   >(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [rifas, setRifas] = useState<Rifa[]>([])
+  const [rifaId, setRifaId] = useState<string>('')
 
   useEffect(() => {
-    const fetchParticipantes = async () => {
+    const fetchAll = async () => {
+      setLoading(true)
       try {
-  const data = await get('/api/admin/participantes', { cache: 'no-store' }) as any
-  setParticipantes((data?.success ? data.data : data) || [])
+        // cargar rifas para el selector (una vez)
+        if (rifas.length === 0) {
+          try {
+            const rf = await get<any>('/api/rifas?page=1&limit=100&orderBy=createdAt&orderDir=desc', { cache: 'no-store' })
+            const list = (rf?.success ? rf.data : rf?.data) || []
+            setRifas(list)
+          } catch {}
+        }
+        const url = rifaId ? `/api/admin/participantes?rifaId=${encodeURIComponent(rifaId)}` : '/api/admin/participantes'
+        const data = await get<any>(url, { cache: 'no-store' })
+        setParticipantes((data?.success ? data.data : data) || [])
       } catch (err: any) {
         setError(err.message || 'Error desconocido')
       } finally {
         setLoading(false)
       }
     }
-
-    fetchParticipantes()
-  }, [])
+    fetchAll()
+  }, [rifaId])
   
   const [filtroEstado, setFiltroEstado] = useState<string>('TODOS')
   const [searchTerm, setSearchTerm] = useState('')
@@ -241,6 +253,19 @@ export default function ParticipantesPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-gray-300 text-sm">Sorteo:</label>
+              <select
+                value={rifaId}
+                onChange={(e) => { setRifaId(e.target.value); setCurrentPage(1) }}
+                className="bg-gray-700 border border-gray-600 rounded-lg text-white px-3 py-2"
+              >
+                <option value="">Todos</option>
+                {rifas.map((r) => (
+                  <option key={r.id} value={r.id}>{r.nombre}</option>
+                ))}
+              </select>
             </div>
             <div className="flex gap-2 flex-wrap">
               {Object.keys(contadorEstados).map((estado) => (

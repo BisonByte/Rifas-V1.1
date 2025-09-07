@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Sistema de Rifas - Participa y Gana',
     description: 'Participa en nuestras rifas, elige tus números y gana increíbles premios',
-    url: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+    url: process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
     siteName: 'Sistema de Rifas',
     locale: 'es_ES',
     type: 'website',

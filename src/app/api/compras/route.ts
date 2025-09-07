@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
-import { createOrder } from '@/lib/paypal'
+// PayPal eliminado: no se crean órdenes externas
 
 const UrlOrRelativeImage = z.string().refine((v) => {
   if (!v) return false
@@ -13,6 +13,7 @@ const CompraSchema = z.object({
   participante: z.object({
     nombre: z.string().min(2, 'Nombre debe tener al menos 2 caracteres'),
     celular: z.string().min(10, 'Celular debe tener al menos 10 dígitos'),
+    cedula: z.string().min(5, 'Cédula inválida').optional(),
     email: z.string().email('Email inválido').optional()
   }),
   // Modo 1: lista de números específicos
@@ -113,7 +114,7 @@ export async function POST(request: NextRequest) {
     // Verificar método de pago
     let metodos: any[] = []
     try {
-      const base = process.env.NEXTAUTH_URL || 'http://localhost:3000'
+      const base = new URL(request.url).origin
       const metodoResponse = await fetch(`${base}/api/metodos-pago`)
       if (!metodoResponse.ok) {
         return NextResponse.json(
@@ -150,13 +151,35 @@ export async function POST(request: NextRequest) {
     })
 
     if (!participante) {
-      participante = await prisma.participante.create({
-        data: {
-          nombre: validatedData.participante.nombre,
-          celular: validatedData.participante.celular,
-          email: validatedData.participante.email
+      // Armar datos dinámicos para compatibilidad con BD sin columna 'cedula'
+      const participantData: any = {
+        nombre: validatedData.participante.nombre,
+        celular: validatedData.participante.celular,
+        email: validatedData.participante.email
+      }
+      if (validatedData.participante.cedula) participantData.cedula = validatedData.participante.cedula
+      try {
+        participante = await prisma.participante.create({ data: participantData })
+      } catch (err: any) {
+        // Si la columna no existe (BD sin migrar), reintentar sin 'cedula'
+        const msg = String(err?.message || '')
+        if (participantData.cedula && (msg.includes('no such column') || msg.includes('Unknown column') || msg.includes('Unknown arg `cedula`'))) {
+          delete participantData.cedula
+          participante = await prisma.participante.create({ data: participantData })
+        } else {
+          throw err
         }
-      })
+      }
+    } else if (validatedData.participante.cedula && !participante.cedula) {
+      // Completar cédula si no estaba guardada (si la columna existe)
+      try {
+        participante = await prisma.participante.update({
+          where: { id: participante.id },
+          data: { cedula: validatedData.participante.cedula }
+        })
+      } catch (err) {
+        // Ignorar si la columna no existe; mantener compatibilidad
+      }
     }
 
     // Crear la compra y reservar tickets en una transacción atómica
@@ -198,22 +221,9 @@ export async function POST(request: NextRequest) {
       return compraNueva
     })
 
-    // Crear orden de pago con PayPal
-    let paymentLink: string | null = null
-    let paymentId: string | null = null
-    try {
-      const order = await createOrder(validatedData.metodoPago.montoTotal)
-      if (order?.id) {
-        paymentId = order.id
-        paymentLink = order.approvalLink || null
-        await prisma.compra.update({
-          where: { id: compra.id },
-          data: { paymentId }
-        })
-      }
-    } catch (err) {
-      console.error('Error creando orden PayPal:', err)
-    }
+    // Pasarela PayPal eliminada: mantener compatibilidad sin enlazar a proveedor externo
+    const paymentLink: string | null = null
+    const paymentId: string | null = null
 
   // Notificación para administradores (después de reserva exitosa)
 
